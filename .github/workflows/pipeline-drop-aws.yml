@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   deploy:
-    name: Deploy
+    name: Reset AWS Storefront Objects
     runs-on: ubuntu-latest
     environment: Prod
 
@@ -28,10 +28,18 @@ jobs:
         aws-region: ${{ vars.AWS_REGION }}
 
     - name: Stop EC2 instances
-      run: aws ec2 describe-instances \
-        --filters "Name=tag:Name,Values=*storefront*" \
-        --query "Reservations[].Instances[?State.Name=='running'].InstanceId[]" \
-        --output text | xargs -r aws ec2 stop-instances --instance-ids
+      run: |
+        INSTANCE_IDS=$(aws ec2 describe-instances \
+          --filters "Name=tag:Name,Values=*storefront*" "Name=instance-state-name,Values=running" \
+          --query "Reservations[].Instances[].InstanceId" \
+          --output text)
+  
+        if [ -n "$INSTANCE_IDS" ]; then
+          aws ec2 stop-instances --instance-ids $INSTANCE_IDS
+          echo "Stopped instances: $INSTANCE_IDS"
+        else
+          echo "No running storefront EC2 instances found."
+        fi
 
     - name: Terminate EC2 instances
       run: aws ec2 describe-instances \
