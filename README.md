@@ -8,8 +8,8 @@ Here are the goals:
 3. Distribute version of software using a pipeline. 
 4. Monitor instances using CloudWatch with a dashboard.
 
-## Reset Project
-Shutdown and delete all EC2 instances
+## Reset project
+Shutdown and delete all AWS test services/instances
 
 ## Create golden image
 Create pipeline following these steps:
