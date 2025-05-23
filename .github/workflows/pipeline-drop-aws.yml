@@ -30,7 +30,7 @@ jobs:
     - name: Test
       run: |
         aws ec2 describe-instances \
-          --filters "Name=instance-state-name,Values=running,stopped" \
+          --filters "Name=tag:Name,Values=*storefront*" \
           --query "Reservations[].Instances[].InstanceId" \
           --output text
 
