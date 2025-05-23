@@ -34,38 +34,38 @@ jobs:
           --query "Reservations[].Instances[].InstanceId" \
           --output text
 
-    - name: Terminate EC2 instances
-      run: |
-        INSTANCE_IDS=$(aws ec2 describe-instances \
-          --filters "Name=tag:Name,Values=*storefront*" "Name=instance-state-name,Values=running,stopped" \
-          --query "Reservations[].Instances[].InstanceId" \
-          --output text)
+    # - name: Terminate EC2 instances
+    #   run: |
+    #     INSTANCE_IDS=$(aws ec2 describe-instances \
+    #       --filters "Name=tag:Name,Values=*storefront*" "Name=instance-state-name,Values=running,stopped" \
+    #       --query "Reservations[].Instances[].InstanceId" \
+    #       --output text)
 
-        if [ -n "$INSTANCE_IDS" ]; then
-          aws ec2 terminate-instances --instance-ids $INSTANCE_IDS
-          echo "Terminated EC2 instances: $INSTANCE_IDS"
-        else
-          echo "No EC2 instances found with 'storefront' in the name."
-        fi
+    #     if [ -n "$INSTANCE_IDS" ]; then
+    #       aws ec2 terminate-instances --instance-ids $INSTANCE_IDS
+    #       echo "Terminated EC2 instances: $INSTANCE_IDS"
+    #     else
+    #       echo "No EC2 instances found with 'storefront' in the name."
+    #     fi
 
-    - name: Delete ALBs/NLBs
-      run: |
-        ELB_ARNS=$(aws elbv2 describe-load-balancers \
-          --query "LoadBalancers[?contains(LoadBalancerName, 'storefront')].LoadBalancerArn" \
-          --output text)
+    # - name: Delete ALBs/NLBs
+    #   run: |
+    #     ELB_ARNS=$(aws elbv2 describe-load-balancers \
+    #       --query "LoadBalancers[?contains(LoadBalancerName, 'storefront')].LoadBalancerArn" \
+    #       --output text)
 
-        for arn in $ELB_ARNS; do
-          aws elbv2 delete-load-balancer --load-balancer-arn "$arn"
-          echo "Deleted ALB/NLB: $arn"
-        done
+    #     for arn in $ELB_ARNS; do
+    #       aws elbv2 delete-load-balancer --load-balancer-arn "$arn"
+    #       echo "Deleted ALB/NLB: $arn"
+    #     done
 
-    - name: Delete CloudWatch Dashboards
-      run: |
-        DASHBOARDS=$(aws cloudwatch list-dashboards \
-          --query "DashboardEntries[?contains(DashboardName, 'storefront')].DashboardName" \
-          --output text)
+    # - name: Delete CloudWatch Dashboards
+    #   run: |
+    #     DASHBOARDS=$(aws cloudwatch list-dashboards \
+    #       --query "DashboardEntries[?contains(DashboardName, 'storefront')].DashboardName" \
+    #       --output text)
 
-        for name in $DASHBOARDS; do
-          aws cloudwatch delete-dashboards --dashboard-names "$name"
-          echo "Deleted CloudWatch Dashboard: $name"
-        done
+    #     for name in $DASHBOARDS; do
+    #       aws cloudwatch delete-dashboards --dashboard-names "$name"
+    #       echo "Deleted CloudWatch Dashboard: $name"
+    #     done
