@@ -27,10 +27,10 @@ jobs:
         role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
         aws-region: ${{ vars.AWS_REGION }}
 
-    - name: Terminate EC2 instances
+    - name: Test
       run: |
         aws ec2 describe-instances \
-          --filters "Name=tag:Name,Values=*storefront*" "Name=instance-state-name,Values=running,stopped" \
+          --filters "Name=instance-state-name,Values=running,stopped" \
           --query "Reservations[].Instances[].InstanceId" \
           --output text
 
