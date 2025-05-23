@@ -24,9 +24,7 @@
 #    See the documentation for each action used below for the recommended IAM policies for this IAM user,
 #    and best practices on handling the access key credentials.
 
-permissions:
-  id-token: write
-  contents: read
+
 
 name: Reset Amazon ECS
 
@@ -37,8 +35,8 @@ on:
 env:
   AWS_REGION:                    # set this to your preferred AWS region, e.g. us-west-1
 
-
 permissions:
+  id-token: write
   contents: read
 
 jobs:
