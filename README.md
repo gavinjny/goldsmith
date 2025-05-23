@@ -17,19 +17,19 @@ Input: version numbrer dropdown
 
 **Packer - [data stored in csv?? Credentials stored where?]**
 1. Create base image of Ubunto linux – security, policy, patching
-    a. Change timezone
-    b. Update software
-    c. Test deployment
-        a. Security - Lynis (lightweight, Linux-specific)
-        b. Application Configuration - Ansible test modules (assert, setup) or InSpec
+    1. Change timezone
+    1. Update software
+    1. Test deployment
+        1. Security - Lynis (lightweight, Linux-specific)
+        1. Application Configuration - Ansible test modules (assert, setup) or InSpec
             i. Compliance – OPENSCAP
             ii. Latest patches 
             iii. Application meta data validation – ansible
             iv. Confirms image metadata - Ansible test modules (assert, setup) or InSpec
-        c. Functionality 
+        1. Functionality 
             i. Services running - Ansible
             ii. Synthetic checks - Playwrite
-    d. Build success?
+    1. Build success?
         i. Yes - Tag successful build
         ii. No – Delete image
 2. Create child image – role specific changes(web, db)
