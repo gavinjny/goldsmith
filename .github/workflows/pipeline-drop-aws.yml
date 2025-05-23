@@ -27,7 +27,6 @@ jobs:
         role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
         aws-region: ${{ vars.AWS_REGION }}
 
-
     - name: Stop EC2 instances
       run: aws ec2 describe-instances \
         --filters "Name=tag:Name,Values=*storefront*" \
