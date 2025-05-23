@@ -24,7 +24,11 @@
 #    See the documentation for each action used below for the recommended IAM policies for this IAM user,
 #    and best practices on handling the access key credentials.
 
-name: Deploy to Amazon ECS
+permissions:
+  id-token: write
+  contents: read
+
+name: Reset Amazon ECS
 
 on:
   push:
@@ -54,6 +58,7 @@ jobs:
         aws-region: ${{ vars.AWS_REGION }}
         # aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         # aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+
     - name: Run AWS CLI
       run: aws s3 ls
     # - name: Login to Amazon ECR
