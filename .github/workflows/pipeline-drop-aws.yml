@@ -1,4 +1,4 @@
-name: Reset AWS services
+name: Drop Storefront infrastucture
 
 on: workflow_dispatch
 
