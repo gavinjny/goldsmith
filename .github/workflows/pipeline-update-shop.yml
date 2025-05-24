@@ -40,7 +40,7 @@ jobs:
         role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
         aws-region: ${{ vars.AWS_REGION }}
         
-  setup-instances:
+  setup-dashboard:
     name: Setup dashboard
     runs-on: ubuntu-latest
     environment: Prod
@@ -56,18 +56,18 @@ jobs:
         role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
         aws-region: ${{ vars.AWS_REGION }}
 
-  # incident-tracking:
-  #   name: Setup incident tracking
-  #   runs-on: ubuntu-latest
-  #   environment: Prod
-  #   needs: setup-dashboard
+  incident-tracking:
+    name: Setup incident tracking
+    runs-on: ubuntu-latest
+    environment: Prod
+    needs: setup-dashboard
 
-  #   steps:
-  #   - name: Checkout
-  #     uses: actions/checkout@v4
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
 
-  #   - name: Configure AWS credentials
-  #     uses: aws-actions/configure-aws-credentials@v2
-  #     with:
-  #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
-  #       aws-region: ${{ vars.AWS_REGION }}
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+        aws-region: ${{ vars.AWS_REGION }}
