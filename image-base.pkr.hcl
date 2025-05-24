@@ -1,7 +1,12 @@
+variable "aws_region" {
+  type    = string
+  default = "default"
+}
+
 source "amazon-ebs" "ubuntu" {
-  ami_name      = "ec2-storefront-web-{{timestamp}}"
+  ami_name      = "ami-storefront-web-{{timestamp}}"
   instance_type = "t2.micro"
-  region        = "us-east-1"
+  region        = "${var.aws_region}"
   source_ami_filter {
     filters = {
       name                = "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"
