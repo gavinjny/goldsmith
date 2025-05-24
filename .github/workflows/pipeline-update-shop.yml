@@ -11,8 +11,6 @@ permissions:
 jobs:
   reset-aws:
     uses: ./.github/workflows/pipeline-drop-aws.yml
-    with:
-      environment: Prod
     secrets: inherit
 
 
