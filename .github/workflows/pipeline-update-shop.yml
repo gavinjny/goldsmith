@@ -33,7 +33,7 @@ jobs:
       run: packer init image-base.pkr.hcl
 
     - name: Validate Packer template
-      run: packer validate -var 'aws_region=${{ vars.AWS_REGION }}' image-base.pkr.hcl
+      run: packer validate -var "aws_region=${{ vars.AWS_REGION }}" image-base.pkr.hcl
 
     # - name: Build Ubuntu AMI
     #   run: packer build -var aws_region=${{ vars.AWS_REGION }} image-base.pkr.hcl
