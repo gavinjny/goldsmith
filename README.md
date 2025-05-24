@@ -8,8 +8,11 @@ Here are the goals:
 3. Distribute version of software using a pipeline. 
 4. Monitor instances using CloudWatch with a dashboard.
 
-## Reset project
+## Reset project pipeline
 Shutdown and delete all AWS test services/instances
+Purpose:
+- Ensures I dont get charged for unused AWS instances and services
+- Reset AWS assets to zero to show process can run from scratch
 
 ## Create golden image
 Create pipeline following these steps:

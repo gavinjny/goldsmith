@@ -1,6 +1,8 @@
 name: Drop Storefront infrastucture
 
-on: workflow_dispatch
+on:
+  workflow_call:
+  workflow_dispatch:
 
 permissions:
   id-token: write
