@@ -51,15 +51,15 @@ Input: version numbrer dropdown
 
 ## Distribute golden image
 **Terraform**
-1. Canary deployment of the latest build
-1. Create autoscaling group
+1. Canary deployment of the latest build - ALB
+1. Create autoscaling group - ASG
 
-## Monitor instances
-**CloudWatch dashboard**
-1. Golden signals
-1. Test results
+## Setup dashboard
+**Terraform**
+1. Golden signals - CloudWatch
+1. Test results - CloudWatch
 
-## Incident tracking
-**Ansible**
-1. Send P1 errors to Teams
-1. Create Trello issues with all errors
+## Setup incident tracking
+**Terraform**
+1. Alerts teams - CloudWatch
+1. Create Trello issue with failure results - CloudWatch
