@@ -1,7 +1,6 @@
 name: Reset AWS services
 
-on:
-  workflow_dispatch:
+on: workflow_dispatch
 
 permissions:
   id-token: write
@@ -48,7 +47,7 @@ jobs:
           echo "Deleted ALB/NLB: $arn"
         done
 
-    - name: Delete Snapshots
+    - name: Delete snapshots
       run: |
         DASHBOARDS=$(aws cloudwatch list-dashboards \
           --query "DashboardEntries[?contains(DashboardName, 'storefront')].DashboardName" \
