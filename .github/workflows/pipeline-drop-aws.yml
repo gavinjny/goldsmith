@@ -48,7 +48,7 @@ jobs:
           echo "Deleted ALB/NLB: $arn"
         done
 
-    - name: Delete CloudWatch Dashboards
+    - name: Delete Snapshots
       run: |
         DASHBOARDS=$(aws cloudwatch list-dashboards \
           --query "DashboardEntries[?contains(DashboardName, 'storefront')].DashboardName" \
@@ -58,3 +58,36 @@ jobs:
           aws cloudwatch delete-dashboards --dashboard-names "$name"
           echo "Deleted CloudWatch Dashboard: $name"
         done
+
+        - name: Deregister AMIs and delete snapshots
+        run: |
+          AMI_IDS=$(aws ec2 describe-images \
+            --owners self \
+            --query "Images[?contains(Name, 'storefront')].ImageId" \
+            --output text)
+  
+          if [ -z "$AMI_IDS" ]; then
+            echo "No AMIs found with 'storefront' in the name."
+            exit 0
+          fi
+  
+          for AMI_ID in $AMI_IDS; do
+            echo "Processing AMI: $AMI_ID"
+  
+            # Get associated snapshot IDs
+            SNAPSHOT_IDS=$(aws ec2 describe-images \
+              --image-ids "$AMI_ID" \
+              --query "Images[].BlockDeviceMappings[].Ebs.SnapshotId" \
+              --output text)
+  
+            # Deregister AMI
+            aws ec2 deregister-image --image-id "$AMI_ID"
+            echo "Deregistered AMI: $AMI_ID"
+  
+            # Delete associated snapshots
+            for SNAPSHOT_ID in $SNAPSHOT_IDS; do
+              aws ec2 delete-snapshot --snapshot-id "$SNAPSHOT_ID"
+              echo "Deleted snapshot: $SNAPSHOT_ID"
+            done
+          done
+  
