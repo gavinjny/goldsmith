@@ -28,7 +28,7 @@ jobs:
         aws-region: ${{ vars.AWS_REGION }}
 
     - name: Test
-      run: aws ec2 describe-instances --filters "Name=tag:Name,Values=*storefront*"
+      run: aws ec2 describe-instances --filters "*storefront*"
 
 
     # - name: Terminate EC2 instances
