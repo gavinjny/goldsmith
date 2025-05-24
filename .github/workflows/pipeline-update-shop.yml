@@ -23,48 +23,51 @@ jobs:
       with:
         role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
         aws-region: ${{ vars.AWS_REGION }}
-  distribute-image:
-    name: Distribute golden image
-    runs-on: ubuntu-latest
-    environment: Prod
-    needs: create-image
 
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+  # distribute-image:
+  #   name: Distribute golden image
+  #   runs-on: ubuntu-latest
+  #   environment: Prod
+  #   needs: create-image
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
-        aws-region: ${{ vars.AWS_REGION }}
-  setup-instances:
-    name: Setup dashboard
-    runs-on: ubuntu-latest
-    environment: Prod
-    needs: distribute-image
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v4
 
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+  #   - name: Configure AWS credentials
+  #     uses: aws-actions/configure-aws-credentials@v2
+  #     with:
+  #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+  #       aws-region: ${{ vars.AWS_REGION }}
+        
+  # setup-instances:
+  #   name: Setup dashboard
+  #   runs-on: ubuntu-latest
+  #   environment: Prod
+  #   needs: distribute-image
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
-        aws-region: ${{ vars.AWS_REGION }}
-  incident-tracking:
-    name: Setup incident tracking
-    runs-on: ubuntu-latest
-    environment: Prod
-    needs: setup-dashboard
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v4
 
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+  #   - name: Configure AWS credentials
+  #     uses: aws-actions/configure-aws-credentials@v2
+  #     with:
+  #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+  #       aws-region: ${{ vars.AWS_REGION }}
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
-        aws-region: ${{ vars.AWS_REGION }}
+  # incident-tracking:
+  #   name: Setup incident tracking
+  #   runs-on: ubuntu-latest
+  #   environment: Prod
+  #   needs: setup-dashboard
+
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v4
+
+  #   - name: Configure AWS credentials
+  #     uses: aws-actions/configure-aws-credentials@v2
+  #     with:
+  #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+  #       aws-region: ${{ vars.AWS_REGION }}
