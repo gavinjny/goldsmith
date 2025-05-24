@@ -62,7 +62,7 @@ build {
     inline = [
       "curl https://omnitruck.chef.io/install.sh | sudo bash -s -- -P inspec",
       "cd /tmp/inspec-profile",
-      "sudo inspec exec . || echo '⚠ InSpec tests failed'"
+      "sudo inspec exec . --chef-license accept --controls image-base || echo '⚠ InSpec tests failed'"
     ]
   }
 }

@@ -6,7 +6,7 @@ summary: Basic validation for Ubuntu golden image
 version: 0.1.0
 
 supports:
-  - platform-family: debian
+  - platform-family: linux
 
 depends: []
 
