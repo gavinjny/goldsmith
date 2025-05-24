@@ -1,11 +1,7 @@
-name: Reset Amazon services
+name: Reset AWS services
 
 on:
-  push:
-    branches: [ "test" ]
-
-env:
-  AWS_REGION:                    # set this to your preferred AWS region, e.g. us-west-1
+  workflow_dispatch:
 
 permissions:
   id-token: write
