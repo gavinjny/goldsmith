@@ -27,6 +27,7 @@ jobs:
     name: Distribute golden image
     runs-on: ubuntu-latest
     environment: Prod
+    needs: create-image
 
     steps:
     - name: Checkout
@@ -37,10 +38,11 @@ jobs:
       with:
         role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
         aws-region: ${{ vars.AWS_REGION }}
-  monitor-instances:
+  setup-instances:
     name: Setup dashboard
     runs-on: ubuntu-latest
     environment: Prod
+    needs: distribute-image
 
     steps:
     - name: Checkout
@@ -55,6 +57,7 @@ jobs:
     name: Setup incident tracking
     runs-on: ubuntu-latest
     environment: Prod
+    needs: setup-dashboard
 
     steps:
     - name: Checkout
