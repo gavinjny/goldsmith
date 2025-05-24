@@ -28,7 +28,11 @@ jobs:
         aws-region: ${{ vars.AWS_REGION }}
 
     - name: Test
-      run: aws ec2 describe-instances
+      run: |
+          aws ec2 describe-instances \
+          --filters "Name=instance-state-name,Values=running,stopped" \
+          --query "Reservations[].Instances[].InstanceId" \
+          --output text
 
 
     # - name: Terminate EC2 instances
