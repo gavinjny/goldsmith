@@ -29,8 +29,15 @@ jobs:
       with:
         version: 'latest'
 
-    - name: Initialize Packer
-      run: packer init image-base.pkr.hcl
+    - name: Initialize Packer (debug)
+      run: |
+        echo "Running packer init..."
+        packer init -upgrade image-base.pkr.hcl
+        echo "Contents of .packer.d/plugins:"
+        ls -R ~/.packer.d/plugins || true
+
+    # - name: Initialize Packer
+    #   run: packer init image-base.pkr.hcl
 
     - name: Validate Packer template
       run: packer validate -var "aws_region=${{ vars.AWS_REGION }}" image-base.pkr.hcl
