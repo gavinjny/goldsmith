@@ -6,7 +6,7 @@ variable "aws_region" {
 source "amazon-ebs" "ubuntu" {
   ami_name      = "ami-storefront-web-{{timestamp}}"
   instance_type = "t2.micro"
-  region        = ${var.aws_region}
+  region        = "${var.aws_region}"
   ssh_username = "ubuntu"
   source_ami_filter {
     filters = {
