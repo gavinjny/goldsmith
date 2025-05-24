@@ -6,7 +6,7 @@ variable "aws_region" {
 source "amazon-ebs" "ubuntu" {
   ami_name      = "ami-storefront-web-{{timestamp}}"
   instance_type = "t2.micro"
-  region        = "${var.aws_region}"
+  region        = "us-west-2" # ${var.aws_region}
   source_ami_filter {
     filters = {
       name                = "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"
