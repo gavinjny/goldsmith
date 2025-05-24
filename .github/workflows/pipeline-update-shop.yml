@@ -13,10 +13,11 @@ jobs:
     uses: ./.github/workflows/pipeline-drop-aws.yml
     secrets: inherit
 
-
   create-golden-image:
     needs: reset-aws
     runs-on: ubuntu-latest
+    environment: Prod
+    
     steps:
     - name: Checkout
       uses: actions/checkout@v4
