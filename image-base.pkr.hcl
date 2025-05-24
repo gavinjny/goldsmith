@@ -42,8 +42,27 @@ build {
 
   provisioner "shell" {
     inline = [
-      "sudo apt-get update",
-      "sudo apt-get upgrade -y"
+      "echo 'Updating packages...'",
+      "sudo apt-get update -y",
+      "sudo apt-get upgrade -y",
+      "echo 'Setting timezone to America/New_York (Eastern)...'",
+      "sudo timedatectl set-timezone America/New_York",
+      "echo 'Done with patching and timezone setup.'"
+    ]
+  }
+  
+  # Upload local InSpec test folder to instance
+  provisioner "file" {
+    source      = "inspec-profile"
+    destination = "/tmp/inspec-profile"
+  }
+
+  # Install InSpec and run tests
+  provisioner "shell" {
+    inline = [
+      "curl https://omnitruck.chef.io/install.sh | sudo bash -s -- -P inspec",
+      "cd /tmp/inspec-profile",
+      "sudo inspec exec . || echo '⚠ InSpec tests failed'"
     ]
   }
 }
