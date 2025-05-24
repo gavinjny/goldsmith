@@ -3,6 +3,15 @@ variable "aws_region" {
   default = "default"
 }
 
+packer {
+  required_plugins {
+    amazon = {
+      source  = "github.com/hashicorp/amazon"
+      version = "~> 1"
+    }
+  }
+}
+
 source "amazon-ebs" "ubuntu" {
   ami_name               = "ami-storefront-base-{{timestamp}}"
   instance_type          = "t2.micro"
