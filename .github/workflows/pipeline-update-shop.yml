@@ -30,7 +30,7 @@ jobs:
         version: 'latest'
 
     - name: Initialize Packer
-      run: packer init image-base.pkr.hcl -var "aws_region=${{ vars.AWS_REGION }}
+      run: packer init image-base.pkr.hcl -var aws_region=${{ vars.AWS_REGION }}
 
     # - name: Validate Packer template
     #   run: packer validate image-base.pkr.hcl -var "aws_region=${{ vars.AWS_REGION }}"
