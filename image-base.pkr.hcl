@@ -17,7 +17,7 @@ source "amazon-ebs" "ubuntu" {
   instance_type          = "t2.micro"
   region                 = var.aws_region
   ssh_username           = "ubuntu"
-  ami_description        = "Custom Ubuntu AMI based on t2.micro with updates"
+  ami_description        = "Base Ubuntu AMI based on t2.micro with updates"
   associate_public_ip_address = true
 
   source_ami_filter {
@@ -31,7 +31,7 @@ source "amazon-ebs" "ubuntu" {
   }
 
   tags = {
-    Name        = "ubuntu-packer-snapshot"
+    Name        = "snapshot-storefront-base-{{timestamp}}"
     CreatedBy   = "packer"
     Environment = "Prod"
   }

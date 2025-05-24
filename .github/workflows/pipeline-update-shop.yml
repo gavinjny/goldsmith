@@ -9,11 +9,16 @@ permissions:
   contents: read
 
 jobs:
-  create-image:
-    name: Create golden image
-    runs-on: ubuntu-latest
-    environment: Prod
+  reset-aws:
+    uses: pipeline-drop.aws.yml@test
+    with:
+      environment: Prod
+    secrets: inherit
 
+
+  create-golden-image:
+    needs: reset-aws
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -29,13 +34,6 @@ jobs:
       with:
         version: 'latest'
 
-    # - name: Initialize Packer (debug)
-    #   run: |
-    #     echo "Running packer init..."
-    #     packer init -upgrade image-base.pkr.hcl
-    #     echo "Contents of .packer.d/plugins:"
-    #     ls -R ~/.packer.d/plugins || true
-
     - name: Initialize Packer
       run: packer init image-base.pkr.hcl
 
@@ -49,50 +47,50 @@ jobs:
 
 
 
-  # distribute-image:
-  #   name: Distribute golden image
-  #   runs-on: ubuntu-latest
-  #   environment: Prod
-  #   needs: create-image
+    # distribute-image:
+    #   name: Distribute golden image
+    #   runs-on: ubuntu-latest
+    #   environment: Prod
+    #   needs: create-image
 
-  #   steps:
-  #   - name: Checkout
-  #     uses: actions/checkout@v4
+    #   steps:
+    #   - name: Checkout
+    #     uses: actions/checkout@v4
 
-  #   - name: Configure AWS credentials
-  #     uses: aws-actions/configure-aws-credentials@v2
-  #     with:
-  #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
-  #       aws-region: ${{ vars.AWS_REGION }}
-        
-  # setup-dashboard:
-  #   name: Setup dashboard
-  #   runs-on: ubuntu-latest
-  #   environment: Prod
-  #   needs: distribute-image
+    #   - name: Configure AWS credentials
+    #     uses: aws-actions/configure-aws-credentials@v2
+    #     with:
+    #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+    #       aws-region: ${{ vars.AWS_REGION }}
+          
+    # setup-dashboard:
+    #   name: Setup dashboard
+    #   runs-on: ubuntu-latest
+    #   environment: Prod
+    #   needs: distribute-image
 
-  #   steps:
-  #   - name: Checkout
-  #     uses: actions/checkout@v4
+    #   steps:
+    #   - name: Checkout
+    #     uses: actions/checkout@v4
 
-  #   - name: Configure AWS credentials
-  #     uses: aws-actions/configure-aws-credentials@v2
-  #     with:
-  #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
-  #       aws-region: ${{ vars.AWS_REGION }}
+    #   - name: Configure AWS credentials
+    #     uses: aws-actions/configure-aws-credentials@v2
+    #     with:
+    #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+    #       aws-region: ${{ vars.AWS_REGION }}
 
-  # incident-tracking:
-  #   name: Setup incident tracking
-  #   runs-on: ubuntu-latest
-  #   environment: Prod
-  #   needs: setup-dashboard
+    # incident-tracking:
+    #   name: Setup incident tracking
+    #   runs-on: ubuntu-latest
+    #   environment: Prod
+    #   needs: setup-dashboard
 
-  #   steps:
-  #   - name: Checkout
-  #     uses: actions/checkout@v4
+    #   steps:
+    #   - name: Checkout
+    #     uses: actions/checkout@v4
 
-  #   - name: Configure AWS credentials
-  #     uses: aws-actions/configure-aws-credentials@v2
-  #     with:
-  #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
-  #       aws-region: ${{ vars.AWS_REGION }}
+    #   - name: Configure AWS credentials
+    #     uses: aws-actions/configure-aws-credentials@v2
+    #     with:
+    #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+    #       aws-region: ${{ vars.AWS_REGION }}
