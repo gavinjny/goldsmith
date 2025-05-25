@@ -41,26 +41,27 @@ jobs:
 
     - name: Build and customize base AMI
       run: |
-        AMI_ID=$(packer build -var "aws_region=${{ vars.AWS_REGION }}" -machine-readable image-base.pkr.hcl | tee output.txt | awk -F, '/artifact,0,id/ {print $6}' | cut -d ':' -f2)
-          echo "ami_id=$AMI_ID" >> $GITHUB_OUTPUT
+        AMI_ID=$(packer build -var "aws_region=${{ vars.AWS_REGION }}" -machine-readable image-base.pkr.hcl | awk -F, '/artifact,0,id/ {print $6}' | cut -d ':' -f2)
+        echo "Built AMI: $AMI_ID"
+        echo "ami_id=$AMI_ID" >> $GITHUB_OUTPUT
 
   
-    - name: Launch EC2 instance from AMI
-      run: |
-        TIMESTAMP=$(date +%s)
-        NAME="ec2-base-zero-${TIMESTAMP}"
-        INSTANCE_ID=$(aws ec2 run-instances \
-          --image-id ${{ steps.packer.outputs.ami_id }} \
-          --count 1 \
-          --instance-type t2.micro \
-          --key-name ${{ secrets.AWS_KEYNAME }} \
-          --subnet-id ${{ secrets.AWS_SUBNET }} \
-          --security-group-ids ${{ secrets.AWS_SECURITYGROUP }} \
-          --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME}]" \
-          --query 'Instances[0].InstanceId' \
-          --output text)
+    # - name: Launch EC2 instance from AMI
+    #   run: |
+    #     TIMESTAMP=$(date +%s)
+    #     NAME="ec2-base-zero-${TIMESTAMP}"
+    #     INSTANCE_ID=$(aws ec2 run-instances \
+    #       --image-id ${{ steps.packer.outputs.ami_id }} \
+    #       --count 1 \
+    #       --instance-type t2.micro \
+    #       --key-name ${{ secrets.AWS_KEYNAME }} \
+    #       --subnet-id ${{ secrets.AWS_SUBNET }} \
+    #       --security-group-ids ${{ secrets.AWS_SECURITYGROUP }} \
+    #       --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME}]" \
+    #       --query 'Instances[0].InstanceId' \
+    #       --output text)
 
-        echo "Launched EC2 instance: $INSTANCE_ID"
+    #     echo "Launched EC2 instance: $INSTANCE_ID"
 
     # distribute-image:
     #   name: Distribute golden image
