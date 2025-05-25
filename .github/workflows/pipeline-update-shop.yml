@@ -50,8 +50,22 @@ jobs:
         
         echo "✅ AMI ID: $AMI_ID"
         echo "ami_id=$AMI_ID" >> $GITHUB_OUTPUT
+# --------------------------------------------------
+  test-image:
+    needs: create-golden-image
+    runs-on: ubuntu-latest
+    environment: Prod
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
 
-  
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+        aws-region: ${{ vars.AWS_REGION }}
+
     - name: Launch EC2 instance from AMI
       run: |
         TIMESTAMP=$(date +%s)
@@ -63,17 +77,16 @@ jobs:
           --key-name ${{ secrets.AWS_KEYNAME }} \
           --subnet-id ${{ secrets.AWS_SUBNET }} \
           --security-group-ids ${{ secrets.AWS_SECURITYGROUP }} \
-          --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME}]" \
+          --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME},{Key=Role,Value=Base}]" \
           --query 'Instances[0].InstanceId' \
           --output text)
-
-    #     echo "Launched EC2 instance: $INSTANCE_ID"
+        echo "Launched EC2 instance: $INSTANCE_ID"
 
     # distribute-image:
     #   name: Distribute golden image
     #   runs-on: ubuntu-latest
     #   environment: Prod
-    #   needs: create-image
+    #   needs: test-image
 
     #   steps:
     #   - name: Checkout
