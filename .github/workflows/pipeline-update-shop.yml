@@ -42,7 +42,7 @@ jobs:
     - name: Build and customize base AMI
       run: |
         echo "🔨 Running packer build..."
-        packer build -machine-readable image-base.pkr.hcl | tee packer_output.log
+        packer build -var "aws_region=${{ vars.AWS_REGION }}" -machine-readable image-base.pkr.hcl | tee packer_output.log
 
         echo "📦 Extracting AMI ID from output..."
         AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
