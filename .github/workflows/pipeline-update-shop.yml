@@ -66,8 +66,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: Prod
     outputs:
-      instance_id: ${{ steps.ec2_launch.outputs.INSTANCE_ID }}
-      public_ip: ${{ steps.ec2_launch.outputs.PUBLIC_IP }}
+      instance_id: ${{ steps.ec2_launch.outputs.instance_id }}
+      public_ip: ${{ steps.ec2_launch.outputs.public_ip }}
     
     steps:
     - name: Checkout
@@ -109,11 +109,11 @@ jobs:
 
     - name: Run InSpec tests
       run: |
+        set -e
+        echo "Running InSpec against ${{ steps.ec2_launch.outputs.public_ip }}"
         CHEF_LICENSE=accept inspec exec inspec-profile/controls/image-base.rb \
-        -t ssh://ubuntu@${{ steps.ec2_launch.outputs.public_ip }} \
-        --key-files ./ec2-key.pem
-
-
+          -t ssh://ubuntu@${{ steps.ec2_launch.outputs.public_ip }} \
+          --key-files ./ec2-key.pem
 
     # distribute-image:
     #   name: Distribute golden image
