@@ -85,7 +85,7 @@ jobs:
       run: |
         TIMESTAMP=$(date +%s)
         NAME="ec2-base-zero-storefront-${TIMESTAMP}"
-        INSTANCE_ID=$(aws ec2 run-instances \
+        INSTANCE_INFO=$(aws ec2 run-instances \
           --image-id "ami-0caf48451cb6750de" \
           --count 1 \
           --instance-type t2.micro \
@@ -109,10 +109,13 @@ jobs:
 
     - name: Run InSpec tests
       run: |
-        inspec exec inspec-profile/controls/image-base.rb \
-          --chef-license accept \
-          -t ssh://ubuntu@${{ steps.ec2_launch.outputs.public_ip }} \
-          --key-files ./ec2-key.pem
+        inspec exec inspec-profile \
+        --chef-license accept \
+        --controls image-base
+        -t ssh://ubuntu@${{ steps.ec2_launch.outputs.public_ip }} \
+        --key-files ./ec2-key.pem 
+
+
 
 
 
