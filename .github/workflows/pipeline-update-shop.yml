@@ -65,6 +65,9 @@ jobs:
     # needs: create-golden-image
     runs-on: ubuntu-latest
     environment: Prod
+    outputs:
+      instance_id: ${{ steps.ec2_launch.outputs.INSTANCE_ID }}
+      public_ip: ${{ steps.ec2_launch.outputs.PUBLIC_IP }}
     
     steps:
     - name: Checkout
@@ -78,6 +81,7 @@ jobs:
 
     # --image-id ${{ needs.create-golden-image.outputs.ami_id }}
     - name: Launch EC2 instance from AMI
+      id: ec2_launch
       run: |
         TIMESTAMP=$(date +%s)
         NAME="ec2-base-zero-storefront-${TIMESTAMP}"
@@ -89,9 +93,28 @@ jobs:
           --subnet-id ${{ secrets.AWS_SUBNET }} \
           --security-group-ids ${{ secrets.AWS_SECURITYGROUP }} \
           --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME},{Key=Role,Value=Base}]" \
-          --query 'Instances[0].InstanceId' \
+          --query 'Instances[0].[InstanceId,PublicIpAddress]' \
           --output text)
-        echo "Launched EC2 instance: $INSTANCE_ID"
+        INSTANCE_ID=$(echo "$INSTANCE_INFO" | awk '{print $1}')
+        PUBLIC_IP=$(echo "$INSTANCE_INFO" | awk '{print $2}')
+        echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
+        echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
+
+    - name: Write EC2 private key
+      run: echo "${{ secrets.AWS_EC2_PRIVATE_KEY }}" > ec2-key.pem && chmod 600 ec2-key.pem
+      
+    - name: Install InSpec
+      run: |
+        curl https://omnitruck.chef.io/install.sh | sudo bash -s -- -P inspec
+
+    - name: Run InSpec tests
+      run: |
+        inspec exec inspec-profile/controls/image-base.rb \
+          -t ssh://ubuntu@${{ steps.ec2_launch.outputs.public_ip }} \
+          --key-files ./ec2-key.pem \
+          --chef-license accept
+
+
 
     # distribute-image:
     #   name: Distribute golden image
