@@ -111,10 +111,14 @@ jobs:
       run: |
         set -e
         echo "Running InSpec against ${{ steps.ec2_launch.outputs.public_ip }}"
-        CHEF_LICENSE=accept inspec exec inspec-profile/controls/image-base.rb \
+        inspec exec . --chef-license accept --controls image-base \
           -t ssh://ubuntu@${{ steps.ec2_launch.outputs.public_ip }} \
           --key-files ./ec2-key.pem
 
+    - name: Terminate EC2 instance
+      if: always()
+      run: |
+        aws ec2 terminate-instances --instance-ids ${{ steps.ec2_launch.outputs.instance_id }}
     # distribute-image:
     #   name: Distribute golden image
     #   runs-on: ubuntu-latest
