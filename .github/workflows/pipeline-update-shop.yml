@@ -52,6 +52,7 @@ jobs:
         echo "📦 Extracting AMI ID from output..."
         AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
         
+        # share ami with dev admin user
         aws ec2 modify-image-attribute \
           --image-id $AMI_ID \
           --launch-permission "Add=[{UserId=561500835037}]"
@@ -80,7 +81,7 @@ jobs:
         TIMESTAMP=$(date +%s)
         NAME="ec2-base-zero-storefront-${TIMESTAMP}"
         INSTANCE_ID=$(aws ec2 run-instances \
-          --image-id ${{ steps.packerbuild.outputs.ami_id }} \
+          --image-id ${{ needs.create-golden-image.outputs.ami_id }} \
           --count 1 \
           --instance-type t2.micro \
           --key-name ${{ secrets.AWS_KEYNAME }} \
