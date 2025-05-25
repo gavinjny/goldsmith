@@ -83,7 +83,6 @@ jobs:
         NAME="ec2-base-zero-storefront-${TIMESTAMP}"
         INSTANCE_ID=$(aws ec2 run-instances \
           --image-id "ami-0caf48451cb6750de" \ 
-          --count 1 \
           --instance-type t2.micro \
           --key-name ${{ secrets.AWS_KEYNAME }} \
           --subnet-id ${{ secrets.AWS_SUBNET }} \
