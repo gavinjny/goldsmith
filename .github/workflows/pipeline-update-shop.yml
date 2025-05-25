@@ -10,13 +10,17 @@ permissions:
 
 jobs:
   reset-aws:
+    name: Reset AWS objects
     uses: ./.github/workflows/pipeline-drop-aws.yml
     secrets: inherit
 
   create-golden-image:
+    name: Create base image
     needs: reset-aws
     runs-on: ubuntu-latest
     environment: Prod
+    outputs:
+      ami_id: ${{ steps.packerbuild.outputs.ami_id }}
     
     steps:
     - name: Checkout
@@ -51,7 +55,8 @@ jobs:
         echo "✅ AMI ID: $AMI_ID"
         echo "ami_id=$AMI_ID" >> $GITHUB_OUTPUT
 # --------------------------------------------------
-  test-image:
+  test-base-image:
+    name: Test base image
     needs: create-golden-image
     runs-on: ubuntu-latest
     environment: Prod
@@ -69,7 +74,7 @@ jobs:
     - name: Launch EC2 instance from AMI
       run: |
         TIMESTAMP=$(date +%s)
-        NAME="ec2-base-zero-${TIMESTAMP}"
+        NAME="ec2-base-zero-storefront-${TIMESTAMP}"
         INSTANCE_ID=$(aws ec2 run-instances \
           --image-id ${{ steps.packerbuild.outputs.ami_id }} \
           --count 1 \
