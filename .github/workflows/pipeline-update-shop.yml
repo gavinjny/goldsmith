@@ -52,6 +52,10 @@ jobs:
         echo "📦 Extracting AMI ID from output..."
         AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
         
+        aws ec2 modify-image-attribute \
+          --image-id $AMI_ID \
+          --launch-permission "Add=[{UserId=561500835037}]"
+
         echo "✅ AMI ID: $AMI_ID"
         echo "ami_id=$AMI_ID" >> $GITHUB_OUTPUT
 # --------------------------------------------------
