@@ -109,13 +109,9 @@ jobs:
 
     - name: Run InSpec tests
       run: |
-        inspec exec inspec-profile \
-        --chef-license accept \
-        --controls image-base
+        CHEF_LICENSE=accept inspec exec inspec-profile/controls/image-base.rb \
         -t ssh://ubuntu@${{ steps.ec2_launch.outputs.public_ip }} \
-        --key-files ./ec2-key.pem 
-
-
+        --key-files ./ec2-key.pem
 
 
 
