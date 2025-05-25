@@ -47,13 +47,16 @@ jobs:
   
     - name: Launch EC2 instance from AMI
       run: |
+        TIMESTAMP=$(date +%s)
+        NAME="ec2-base-zero-${TIMESTAMP}"
         INSTANCE_ID=$(aws ec2 run-instances \
           --image-id ${{ steps.packer.outputs.ami_id }} \
+          --count 1 \
           --instance-type t2.micro \
-          --key-name ${{ secret.AWS_KEYNAME }} \
-          --subnet-id ${{ secret.AWS_SUBNET }} \
-          --security-group-ids ${{ secret.AWS_SECURITYGROUP }} \
-          --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=ec2-base-zero-}]' \
+          --key-name ${{ secrets.AWS_KEYNAME }} \
+          --subnet-id ${{ secrets.AWS_SUBNET }} \
+          --security-group-ids ${{ secrets.AWS_SECURITYGROUP }} \
+          --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME}]" \
           --query 'Instances[0].InstanceId' \
           --output text)
 
