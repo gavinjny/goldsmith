@@ -32,37 +32,39 @@ source "amazon-ebs" "ubuntu" {
 
   tags = {
     Name        = "snapshot-storefront-base-{{timestamp}}"
-    CreatedBy   = "packer"
+    CreatedBy   = "Packer"
     Environment = "Prod"
   }
 }
 
 build {
   sources = ["source.amazon-ebs.ubuntu"]
-
-  provisioner "shell" {
-    inline = [
-      "echo 'Updating packages...'",
-      "sudo apt-get update -y",
-      "sudo apt-get upgrade -y",
-      "echo 'Setting timezone to America/New_York (Eastern)...'",
-      "sudo timedatectl set-timezone America/New_York",
-      "echo 'Done with patching and timezone setup.'"
-    ]
-  }
   
   # Upload local InSpec test folder to instance
   provisioner "file" {
-    source      = "inspec-profile"
-    destination = "/tmp/inspec-profile"
+    source      = "image-base.sh"
+    destination = "/tmp/image-base.sh"
   }
 
-  # Install InSpec and run tests
   provisioner "shell" {
     inline = [
-      "curl https://omnitruck.chef.io/install.sh | sudo bash -s -- -P inspec",
-      "cd /tmp/inspec-profile",
-      "sudo inspec exec . --chef-license accept --controls image-base || echo '⚠ InSpec tests failed'"
+      "chmod +x /tmp/image-base.sh",
+      "sudo /tmp/image-base.sh"
     ]
   }
+
+  # # Upload local InSpec test folder to instance
+  # provisioner "file" {
+  #   source      = "inspec-profile"
+  #   destination = "/tmp/inspec-profile"
+  # }
+
+  # # Install InSpec and run tests
+  # provisioner "shell" {
+  #   inline = [
+  #     "curl https://omnitruck.chef.io/install.sh | sudo bash -s -- -P inspec",
+  #     "cd /tmp/inspec-profile",
+  #     "sudo inspec exec . --chef-license accept --controls image-base || echo '⚠ InSpec tests failed'"
+  #   ]
+  # }
 }

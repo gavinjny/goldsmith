@@ -39,12 +39,25 @@ jobs:
     - name: Validate Packer template
       run: packer validate -var "aws_region=${{ vars.AWS_REGION }}" image-base.pkr.hcl
 
-    - name: Build Ubuntu AMI
-      run: packer build -var "aws_region=${{ vars.AWS_REGION }}" image-base.pkr.hcl
+    - name: Build and customize base AMI
+      run: |
+        AMI_ID=$(packer build -var "aws_region=${{ vars.AWS_REGION }}" -machine-readable image-base.pkr.hcl | tee output.txt | awk -F, '/artifact,0,id/ {print $6}' | cut -d ':' -f2)
+          echo "ami_id=$AMI_ID" >> $GITHUB_OUTPUT
 
+  
+    - name: Launch EC2 instance from AMI
+      run: |
+        INSTANCE_ID=$(aws ec2 run-instances \
+          --image-id ${{ steps.packer.outputs.ami_id }} \
+          --instance-type t2.micro \
+          --key-name ${{ secret.AWS_KEYNAME }} \
+          --subnet-id ${{ secret.AWS_SUBNET }} \
+          --security-group-ids ${{ secret.AWS_SECURITYGROUP }} \
+          --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=ec2-base-zero-}]' \
+          --query 'Instances[0].InstanceId' \
+          --output text)
 
-
-
+        echo "Launched EC2 instance: $INSTANCE_ID"
 
     # distribute-image:
     #   name: Distribute golden image
