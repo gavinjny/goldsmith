@@ -230,27 +230,27 @@ jobs:
       run: |
         sleep 180
 
-    # - name: Wait for DB EC2 SSH to be ready
-    #   run: |
-    #     for i in {1..90}; do
-    #       if ssh -o StrictHostKeyChecking=no -i ./ec2-key.pem ubuntu@${{ steps.db_get_ip.outputs.db_public_ip }} exit 2>/dev/null; then
-    #         echo "SSH is ready"
-    #         break
-    #       fi
-    #       echo "Waiting for SSH... ($i)"
-    #       sleep 5
-    #     done
+    - name: Check for DB EC2 SSH is ready
+      run: |
+        for i in {1..30}; do
+          if ssh -o StrictHostKeyChecking=no -i ./ec2-key.pem ubuntu@${{ steps.db_get_ip.outputs.db_public_ip }} exit 2>/dev/null; then
+            echo "SSH is ready"
+            break
+          fi
+          echo "Waiting for SSH... ($i)"
+          sleep 5
+        done
 
-    # - name: Wait for web EC2 SSH to be ready
-    #   run: |
-    #     for i in {1..90}; do
-    #       if ssh -o StrictHostKeyChecking=no -i ./ec2-key.pem ubuntu@${{ steps.web_get_ip.outputs.web_public_ip }} exit 2>/dev/null; then
-    #         echo "SSH is ready"
-    #         break
-    #       fi
-    #       echo "Waiting for SSH... ($i)"
-    #       sleep 5
-    #     done
+    - name: Check for web EC2 SSH is ready
+      run: |
+        for i in {1..30}; do
+          if ssh -o StrictHostKeyChecking=no -i ./ec2-key.pem ubuntu@${{ steps.web_get_ip.outputs.web_public_ip }} exit 2>/dev/null; then
+            echo "SSH is ready"
+            break
+          fi
+          echo "Waiting for SSH... ($i)"
+          sleep 5
+        done
 
     - name: Write EC2 private key locally
       run: echo "${{ secrets.AWS_EC2_PRIVATE_KEY }}" > ./ec2-key.pem && chmod 600 ./ec2-key.pem
