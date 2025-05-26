@@ -104,6 +104,7 @@ jobs:
         public_ip=$(echo "$INSTANCE_INFO" | awk '{print $2}')
         echo "instance_id=$instance_id"
         echo "public_ip=$public_ip"
+        echo "$INSTANCE_INFO"
 
     - name: Debug public IP and Instance ID
       run: |
@@ -117,3 +118,51 @@ jobs:
       if: always() # Ensures termination even if previous steps fail
       run: |
         aws ec2 terminate-instances --instance-ids ${{ steps.ec2_launch.outputs.instance_id }}
+
+  # distribute-image:
+  #   name: Distribute golden image
+  #   runs-on: ubuntu-latest
+  #   environment: Prod
+  #   needs: test-base-image # Corrected dependency from 'test-image'
+
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v4
+
+  #   - name: Configure AWS credentials
+  #     uses: aws-actions/configure-aws-credentials@v2
+  #     with:
+  #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+  #       aws-region: ${{ vars.AWS_REGION }}
+
+  # setup-dashboard:
+  #   name: Setup dashboard
+  #   runs-on: ubuntu-latest
+  #   environment: Prod
+  #   needs: distribute-image
+
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v4
+
+  #   - name: Configure AWS credentials
+  #     uses: aws-actions/configure-aws-credentials@v2
+  #     with:
+  #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+  #       aws-region: ${{ vars.AWS_REGION }}
+
+  # incident-tracking:
+  #   name: Setup incident tracking
+  #   runs-on: ubuntu-latest
+  #   environment: Prod
+  #   needs: setup-dashboard
+
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v4
+
+  #   - name: Configure AWS credentials
+  #     uses: aws-actions/configure-aws-credentials@v2
+  #     with:
+  #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+  #       aws-region: ${{ vars.AWS_REGION }}
