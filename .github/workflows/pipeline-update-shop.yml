@@ -19,7 +19,7 @@ jobs:
 
   # create-golden-image:
   #   name: Create base image
-  #   needs: reset-aws # Ensure 'reset-aws' is uncommented if this dependency is active
+  #   needs: reset-aws 
   #   runs-on: ubuntu-latest
   #   environment: Prod
   #   outputs:
@@ -54,7 +54,7 @@ jobs:
   #       echo "Extracting AMI ID from output..."
   #       AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
 
-  #   - name: Share AMI with dev admin user
+  #   - name: Share base AMI with dev admin user
   #       aws ec2 modify-image-attribute \
   #         --image-id "$AMI_ID" \
   #         --launch-permission "Add=[{UserId=${{ secrets.AWS_USER_DEVADMIN }}}]"
@@ -66,8 +66,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: Prod
     outputs:
-      instance_id: ${{ steps.ec2_launch.outputs.instance_id }}
-      public_ip: ${{ steps.ec2_launch.outputs.public_ip }}
+      base_instance_id: ${{ steps.base_ec2_launch.outputs.base_instance_id }}
+      base_public_ip: ${{ steps.base_ec2_launch.outputs.base_public_ip }}
 
     steps:
     - name: Checkout
@@ -79,8 +79,8 @@ jobs:
         role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
         aws-region: ${{ vars.AWS_REGION }}
 
-    - name: Launch EC2 instance from AMI
-      id: ec2_launch
+    - name: Launch base EC2 instance from AMI
+      id: base_ec2_launch
       run: |
         TIMESTAMP=$(date +%s)
         NAME="ec2-base-zero-storefront-${TIMESTAMP}"
@@ -94,40 +94,141 @@ jobs:
           --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME},{Key=Role,Value=Base}]" \
           --query 'Instances[0].[InstanceId]' \
           --output text)
-        instance_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
-        echo "instance_id=$instance_id" >> $GITHUB_OUTPUT
+        base_instance_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
+        echo "base_instance_id=$base_instance_id" >> $GITHUB_OUTPUT
 
-    - name: Retrieve instance public ip address
-      id: get_ip
+    - name: Retrieve base instance public ip address
+      id: base_get_ip
       run: |
-        public_ip=$(aws ec2 describe-instances \
-          --instance-ids "${{ steps.ec2_launch.outputs.instance_id }}" \
+        base_public_ip=$(aws ec2 describe-instances \
+          --instance-ids "${{ steps.base_ec2_launch.outputs.base_instance_id }}" \
           --query 'Reservations[0].Instances[0].PublicIpAddress' \
           --output text)
-        echo "public_ip=$public_ip" >> $GITHUB_OUTPUT
+        echo "base_public_ip=$base_public_ip" >> $GITHUB_OUTPUT
 
-    - name: Write EC2 private key
-      run: echo "${{ secrets.AWS_EC2_PRIVATE_KEY }}" > ./ec2-key.pem && chmod 600 ./ec2-key.pem
+    # - name: Write EC2 private key
+    #   run: echo "${{ secrets.AWS_EC2_PRIVATE_KEY }}" > ./ec2-key.pem && chmod 600 ./ec2-key.pem
 
-    - name: Install InSpec
-      run: |
-        curl https://omnitruck.chef.io/install.sh | sudo bash -s -- -P inspec
-
-    - name: Find InSpec license
-      run: |
-        CHEF_LICENSE=accept inspec license status
-
-    - name: Run InSpec test on EC2
-      run: |
-        CHEF_LICENSE=accept inspec exec inspec-profile/controls/image-base.rb \
-          -t ssh://ubuntu@${{ steps.get_ip.outputs.public_ip }} \
-          --key-files ./ec2-key.pem
-
-    # - name: Terminate EC2 instance
-    #   if: always() # Ensures termination even if previous steps fail
+    # - name: Install InSpec
     #   run: |
-    #     aws ec2 terminate-instances --instance-ids ${{ steps.ec2_launch.outputs.instance_id }}
+    #     curl https://omnitruck.chef.io/install.sh | sudo bash -s -- -P inspec
 
+    # - name: Find InSpec license
+    #   run: |
+    #     CHEF_LICENSE=accept inspec license status
+
+    # - name: Run InSpec test on EC2
+    #   run: |
+    #     CHEF_LICENSE=accept inspec exec inspec-profile/controls/image-base.rb \
+    #       -t ssh://ubuntu@${{ steps.base_get_ip.outputs.base_public_ip }} \
+    #       --key-files ./ec2-key.pem
+
+    - name: Terminate base EC2 instance
+      if: always() # Ensures termination even if previous steps fail
+      run: |
+        aws ec2 terminate-instances --instance-ids ${{ steps.base_ec2_launch.outputs.base_instance_id }}
+
+
+
+
+  create-role-image:
+    name: Create role image from base image
+    runs-on: ubuntu-latest
+    needs: test-base-image
+    environment: Prod
+    outputs:
+      web_instance_id: ${{ steps.web_ec2_launch.outputs.web_instance_id }}
+      web_public_ip: ${{ steps.web_ec2_launch.outputs.web_public_ip }}
+      db_instance_id: ${{ steps.db_ec2_launch.outputs.db_instance_id }}
+      db_public_ip: ${{ steps.db_ec2_launch.outputs.db_public_ip }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+        aws-region: ${{ vars.AWS_REGION }}
+
+    - name: Launch DB EC2 instance from AMI
+      id: db_ec2_launch
+      run: |
+        TIMESTAMP=$(date +%s)
+        NAME="ec2-db-zero-storefront-${TIMESTAMP}"
+        INSTANCE_INFO=$(aws ec2 run-instances \
+          --image-id "ami-0caf48451cb6750de" \
+          --count 1 \
+          --instance-type t2.micro \
+          --key-name ${{ secrets.AWS_KEYNAME }} \
+          --subnet-id ${{ secrets.AWS_SUBNET }} \
+          --security-group-ids ${{ secrets.AWS_SECURITYGROUP }} \
+          --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME},{Key=Role,Value=DB}]" \
+          --query 'Instances[0].[InstanceId]' \
+          --output text)
+        db_instance_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
+        echo "db_instance_id=$db_instance_id" >> $GITHUB_OUTPUT
+
+    - name: Retrieve DB instance public ip address
+      id: db_get_ip
+      run: |
+        db_public_ip=$(aws ec2 describe-instances \
+          --instance-ids "${{ steps.db_ec2_launch.outputs.web_instance_id }}" \
+          --query 'Reservations[0].Instances[0].PublicIpAddress' \
+          --output text)
+        echo "db_public_ip=$db_public_ip" >> $GITHUB_OUTPUT
+
+    - name: Launch web EC2 instance from AMI
+      id: web_ec2_launch
+      run: |
+        TIMESTAMP=$(date +%s)
+        NAME="ec2-web-zero-storefront-${TIMESTAMP}"
+        INSTANCE_INFO=$(aws ec2 run-instances \
+          --image-id "ami-0caf48451cb6750de" \
+          --count 1 \
+          --instance-type t2.micro \
+          --key-name ${{ secrets.AWS_KEYNAME }} \
+          --subnet-id ${{ secrets.AWS_SUBNET }} \
+          --security-group-ids ${{ secrets.AWS_SECURITYGROUP }} \
+          --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME},{Key=Role,Value=Web}]" \
+          --query 'Instances[0].[InstanceId]' \
+          --output text)
+        web_instance_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
+        echo "web_instance_id=$web_instance_id" >> $GITHUB_OUTPUT
+
+    - name: Retrieve web instance public ip address
+      id: web_get_ip
+      run: |
+        web_public_ip=$(aws ec2 describe-instances \
+          --instance-ids "${{ steps.web_ec2_launch.outputs.web_instance_id }}" \
+          --query 'Reservations[0].Instances[0].PublicIpAddress' \
+          --output text)
+        echo "web_public_ip=$web_public_ip" >> $GITHUB_OUTPUT
+
+    # - name: Write EC2 private key
+    #   run: echo "${{ secrets.AWS_EC2_PRIVATE_KEY }}" > ./ec2-key.pem && chmod 600 ./ec2-key.pem
+
+    #   # ${{ steps.get_ip.outputs.public_ip }}
+
+    # - name: Customize DB instance
+
+    
+    # - name: Customize web instance
+
+    
+    - name: Terminate DB EC2 instance
+      if: always() # Ensures termination even if previous steps fail
+      run: |
+        aws ec2 terminate-instances --instance-ids ${{ steps.db_ec2_launch.outputs.db_instance_id }}
+      
+    - name: Terminate web EC2 instance
+      if: always() # Ensures termination even if previous steps fail
+      run: |
+        aws ec2 terminate-instances --instance-ids ${{ steps.web_ec2_launch.outputs.web_instance_id }}
+
+
+  
   # distribute-image:
   #   name: Distribute golden image
   #   runs-on: ubuntu-latest
