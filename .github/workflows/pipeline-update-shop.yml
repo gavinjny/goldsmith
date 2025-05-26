@@ -23,7 +23,8 @@ jobs:
   #   runs-on: ubuntu-latest
   #   environment: Prod
   #   outputs:
-  #     ami_id: ${{ steps.packerbuild.outputs.ami_id }}
+  #     base_ami_id: ${{ steps.packerbuild.outputs.base_ami_id }}
+  #     base_ami_name: ${{ steps.get_base_ami_name.outputs.base_ami_name }}
 
   #   steps:
   #   - name: Checkout
@@ -54,21 +55,28 @@ jobs:
   #       echo "Extracting AMI ID from output..."
   #       AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
 
-  #   - name: Share base AMI with dev admin user
-  #       aws ec2 modify-image-attribute \
-  #         --image-id "$AMI_ID" \
-  #         --launch-permission "Add=[{UserId=${{ secrets.AWS_USER_DEVADMIN }}}]"
-  #       echo "AMI ID: $AMI_ID"
-  #       echo "ami_id=$AMI_ID"
+      # - name: Get base AMI name
+      #   id: get_base_ami_name
+      #   run: |
+      #     AMI_ID=${{ steps.packerbuild.outputs.base_ami_id }}
+      
+      #     echo "Looking up AMI Name for: $AMI_ID"
+      #     AMI_NAME=$(aws ec2 describe-images \
+      #       --image-ids "$AMI_ID" \
+      #       --query 'Images[0].Name' \
+      #       --output text)
+      
+      #     echo "AMI Name: $AMI_NAME"
+      #     echo "base_ami_name=$AMI_NAME" >> $GITHUB_OUTPUT
 
   test-base-image:
     name: Test base image
     runs-on: ubuntu-latest
     environment: Prod
     outputs:
-      base_instance_id: ${{ steps.base_ec2_launch.outputs.base_instance_id }}
+      base_ec2_id: ${{ steps.base_ec2_launch.outputs.base_ec2_id }}
       base_public_ip: ${{ steps.base_ec2_launch.outputs.base_public_ip }}
-
+      
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -94,14 +102,14 @@ jobs:
           --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME},{Key=Role,Value=Base}]" \
           --query 'Instances[0].[InstanceId]' \
           --output text)
-        base_instance_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
-        echo "base_instance_id=$base_instance_id" >> $GITHUB_OUTPUT
+        base_ec2_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
+        echo "base_ec2_id=$base_ec2_id" >> $GITHUB_OUTPUT
 
     - name: Retrieve base instance public ip address
       id: base_get_ip
       run: |
         base_public_ip=$(aws ec2 describe-instances \
-          --instance-ids "${{ steps.base_ec2_launch.outputs.base_instance_id }}" \
+          --instance-ids "${{ steps.base_ec2_launch.outputs.base_ec2_id }}" \
           --query 'Reservations[0].Instances[0].PublicIpAddress' \
           --output text)
         echo "base_public_ip=$base_public_ip" >> $GITHUB_OUTPUT
@@ -126,7 +134,7 @@ jobs:
     - name: Terminate base EC2 instance
       if: always() # Ensures termination even if previous steps fail
       run: |
-        aws ec2 terminate-instances --instance-ids ${{ steps.base_ec2_launch.outputs.base_instance_id }}
+        aws ec2 terminate-instances --instance-ids ${{ steps.base_ec2_launch.outputs.base_ec2_id }}
 
 
 
@@ -137,10 +145,12 @@ jobs:
     needs: test-base-image
     environment: Prod
     outputs:
-      web_instance_id: ${{ steps.web_ec2_launch.outputs.web_instance_id }}
+      web_ec2_id: ${{ steps.web_ec2_launch.outputs.web_ec2_id }}
       web_public_ip: ${{ steps.web_ec2_launch.outputs.web_public_ip }}
-      db_instance_id: ${{ steps.db_ec2_launch.outputs.db_instance_id }}
+      db_ec2_id: ${{ steps.db_ec2_launch.outputs.db_ec2_id }}
       db_public_ip: ${{ steps.db_ec2_launch.outputs.db_public_ip }}
+      web_ami_id: ${{ steps.web_create_ami.outputs.web_ami_id }}
+      db_ami_id: ${{ steps.db_create_ami.outputs.db_ami_id }}
 
     steps:
     - name: Checkout
@@ -167,14 +177,14 @@ jobs:
           --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME},{Key=Role,Value=DB}]" \
           --query 'Instances[0].[InstanceId]' \
           --output text)
-        db_instance_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
-        echo "db_instance_id=$db_instance_id" >> $GITHUB_OUTPUT
+        db_ec2_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
+        echo "db_ec2_id=$db_ec2_id" >> $GITHUB_OUTPUT
 
     - name: Retrieve DB instance public ip address
       id: db_get_ip
       run: |
         db_public_ip=$(aws ec2 describe-instances \
-          --instance-ids "${{ steps.db_ec2_launch.outputs.db_instance_id }}" \
+          --instance-ids "${{ steps.db_ec2_launch.outputs.db_ec2_id }}" \
           --query 'Reservations[0].Instances[0].PublicIpAddress' \
           --output text)
         echo "db_public_ip=$db_public_ip" >> $GITHUB_OUTPUT
@@ -194,52 +204,52 @@ jobs:
           --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME},{Key=Role,Value=Web}]" \
           --query 'Instances[0].[InstanceId]' \
           --output text)
-        web_instance_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
-        echo "web_instance_id=$web_instance_id" >> $GITHUB_OUTPUT
+        web_ec2_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
+        echo "web_ec2_id=$web_ec2_id" >> $GITHUB_OUTPUT
 
     - name: Retrieve web instance public ip address
       id: web_get_ip
       run: |
         web_public_ip=$(aws ec2 describe-instances \
-          --instance-ids "${{ steps.web_ec2_launch.outputs.web_instance_id }}" \
+          --instance-ids "${{ steps.web_ec2_launch.outputs.web_ec2_id }}" \
           --query 'Reservations[0].Instances[0].PublicIpAddress' \
           --output text)
         echo "web_public_ip=$web_public_ip" >> $GITHUB_OUTPUT
 
-    - name: Wait for DB EC2 SSH to be ready
+    - name: Display Public IPs
       run: |
-        for i in {1..30}; do
-          if ssh -o StrictHostKeyChecking=no -i ec2-key.pem ubuntu@${{ steps.db_get_ip.outputs.db_public_ip }} exit 2>/dev/null; then
-            echo "✅ SSH is ready"
-            break
-          fi
-          echo "⏳ Waiting for SSH... ($i)"
-          sleep 5
-        done
-
-    - name: Wait for web EC2 SSH to be ready
-      run: |
-        for i in {1..30}; do
-          if ssh -o StrictHostKeyChecking=no -i ec2-key.pem ubuntu@${{ steps.web_get_ip.outputs.web_public_ip }} exit 2>/dev/null; then
-            echo "✅ SSH is ready"
-            break
-          fi
-          echo "⏳ Waiting for SSH... ($i)"
-          sleep 5
-        done
-
-    - name: Write EC2 private key
-      run: echo "${{ secrets.AWS_EC2_PRIVATE_KEY }}" > ./ec2-key.pem && chmod 600 ./ec2-key.pem
+        echo "DB IP: ${{ steps.db_get_ip.outputs.db_public_ip }}"
+        echo "Web IP: ${{ steps.web_get_ip.outputs.web_public_ip }}"
 
     - name: Install Ansible
       run: |
         sudo apt update
         sudo apt install -y ansible
-    
-    - name: Return Public IPs
+
+    - name: Wait for DB EC2 SSH to be ready
       run: |
-        echo "DB IP: ${{ steps.db_get_ip.outputs.db_public_ip }}"
-        echo "Web IP: ${{ steps.web_get_ip.outputs.web_public_ip }}"
+        for i in {1..90}; do
+          if ssh -o StrictHostKeyChecking=no -i ec2-key.pem ubuntu@${{ steps.db_get_ip.outputs.db_public_ip }} exit 2>/dev/null; then
+            echo "SSH is ready"
+            break
+          fi
+          echo "Waiting for SSH... ($i)"
+          sleep 5
+        done
+
+    - name: Wait for web EC2 SSH to be ready
+      run: |
+        for i in {1..90}; do
+          if ssh -o StrictHostKeyChecking=no -i ec2-key.pem ubuntu@${{ steps.web_get_ip.outputs.web_public_ip }} exit 2>/dev/null; then
+            echo "SSH is ready"
+            break
+          fi
+          echo "Waiting for SSH... ($i)"
+          sleep 5
+        done
+
+    - name: Write EC2 private key locally
+      run: echo "${{ secrets.AWS_EC2_PRIVATE_KEY }}" > ./ec2-key.pem && chmod 600 ./ec2-key.pem
 
     - name: Run DB customization
       run: |
@@ -250,16 +260,51 @@ jobs:
       run: |
         ansible-playbook -i "${{ steps.web_get_ip.outputs.web_public_ip }}," image-web.yml \
         -u ubuntu --private-key ec2-key.pem
+# -----------------------------------------
+    - name: Create DB AMI
+      id: db_create_ami
+      run: |
+        ec2_id=${{ steps.db_ec2_launch.outputs.db_ec2_id }}
+        echo "Creating db AMI from instance: $ec2_id"
+        AMI_ID=$(aws ec2 create-image \
+          --instance-id "$ec2_id" \
+          --name "snapshot-storefront-db" \
+          --no-reboot \
+          --query 'ImageId' \
+          --output text)
     
-    - name: Terminate DB EC2 instance
-      if: always() # Ensures termination even if previous steps fail
+        echo "DB AMI created: $AMI_ID"
+        echo "db_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
+
+    - name: Create web AMI
+      id: web_create_ami
       run: |
-        aws ec2 terminate-instances --instance-ids ${{ steps.db_ec2_launch.outputs.db_instance_id }}
+        ec2_id=${{ steps.web_ec2_launch.outputs.web_ec2_id }}
+        echo "Creating web AMI from instance: $ec2_id"
+        AMI_ID=$(aws ec2 create-image \
+          --instance-id "$ec2_id" \
+          --name "snapshot-storefront-db" \
+          --no-reboot \
+          --query 'ImageId' \
+          --output text)
+    
+        echo "DB AMI created: $AMI_ID"
+        echo "web_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
+        
+    - name: Display AMI IPs
+      run: |
+        echo "DB AMI: ${{ steps.db_create_ami.outputs.db_ami_id }}"
+        echo "Web AMI: ${{ steps.web_create_ami.outputs.web_ami_id }}"
+        
+    # - name: Terminate DB EC2 instance
+    #   if: always() # Ensures termination even if previous steps fail
+    #   run: |
+    #     aws ec2 terminate-instances --instance-ids ${{ steps.db_ec2_launch.outputs.db_ec2_id }}
       
-    - name: Terminate web EC2 instance
-      if: always() # Ensures termination even if previous steps fail
-      run: |
-        aws ec2 terminate-instances --instance-ids ${{ steps.web_ec2_launch.outputs.web_instance_id }}
+    # - name: Terminate web EC2 instance
+    #   if: always() # Ensures termination even if previous steps fail
+    #   run: |
+    #     aws ec2 terminate-instances --instance-ids ${{ steps.web_ec2_launch.outputs.web_ec2_id }}
 
 
   
