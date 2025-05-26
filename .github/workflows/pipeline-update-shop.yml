@@ -132,7 +132,7 @@ jobs:
 
 
   create-role-image:
-    name: Create role image from base image
+    name: Create role image
     runs-on: ubuntu-latest
     needs: test-base-image
     environment: Prod
@@ -174,7 +174,7 @@ jobs:
       id: db_get_ip
       run: |
         db_public_ip=$(aws ec2 describe-instances \
-          --instance-ids "${{ steps.db_ec2_launch.outputs.web_instance_id }}" \
+          --instance-ids "${{ steps.db_ec2_launch.outputs.db_instance_id }}" \
           --query 'Reservations[0].Instances[0].PublicIpAddress' \
           --output text)
         echo "db_public_ip=$db_public_ip" >> $GITHUB_OUTPUT
