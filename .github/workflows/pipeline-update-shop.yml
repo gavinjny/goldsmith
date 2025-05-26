@@ -91,7 +91,7 @@ jobs:
         TIMESTAMP=$(date +%s)
         NAME="ec2-base-zero-storefront-${TIMESTAMP}"
         INSTANCE_INFO=$(aws ec2 run-instances \
-          --image-id "ami-0caf48451cb6750de" \ # REMINDER: Replace with dynamic AMI_ID from 'create-golden-image'
+          --image-id "ami-0caf48451cb6750de" \
           --count 1 \
           --instance-type t2.micro \
           --key-name ${{ secrets.AWS_KEYNAME }} \
@@ -102,7 +102,7 @@ jobs:
           --output text)
         instance_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
         public_ip=$(echo "$INSTANCE_INFO" | awk '{print $2}')
-        echo "instance_id=$instance_id" >> "$GITHUB_OUTPUT"
+        echo "instance_id=$instance_id"
         echo "public_ip=$public_ip" >> "$GITHUB_OUTPUT"
 
     - name: Debug public IP and Instance ID
