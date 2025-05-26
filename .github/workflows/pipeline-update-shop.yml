@@ -228,8 +228,8 @@ jobs:
 
     - name: Wait for DB EC2 SSH to be ready
       run: |
-        sleep 30
-        
+        sleep 120
+
     # - name: Wait for DB EC2 SSH to be ready
     #   run: |
     #     for i in {1..90}; do
