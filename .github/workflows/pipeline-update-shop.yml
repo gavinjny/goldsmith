@@ -83,6 +83,7 @@ jobs:
     - name: Launch EC2 instance from AMI
       id: ec2_launch
       run: |
+        set -e
         TIMESTAMP=$(date +%s)
         NAME="ec2-base-zero-storefront-${TIMESTAMP}"
         INSTANCE_INFO=$(aws ec2 run-instances \
@@ -102,7 +103,8 @@ jobs:
 
     - name: Debug public IP
       run: |
-        echo "Public IP is: ${{ steps.ec2_launch.outputs.public_ip }}" >> $GITHUB_OUTPUT
+        echo "Public IP is: ${{ needs.test-base-image.outputs.public_ip }}" >> $GITHUB_OUTPUT
+        echo "Instance ID is: ${{ needs.test-base-image.outputs.instance_id }}" >> $GITHUB_OUTPUT
 
     - name: Write EC2 private key
       run: |
@@ -116,7 +118,7 @@ jobs:
       run: |
         set -e
         echo "Running InSpec against ${{ steps.ec2_launch.outputs.public_ip }}"
-        inspec exec . --chef-license accept --controls image-base \
+        inspec exec inspec-profile/controls/image-base.rb --chef-license accept \
           -t ssh://ubuntu@${{ steps.ec2_launch.outputs.public_ip }} \
           --key-files ./ec2-key.pem
 
