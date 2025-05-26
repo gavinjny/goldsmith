@@ -100,8 +100,13 @@ jobs:
         echo "instance_id=$instance_id" >> $GITHUB_OUTPUT
         echo "public_ip=$public_ip" >> $GITHUB_OUTPUT
 
+    - name: Debug public IP
+      run: |
+        echo "Public IP is: ${{ steps.ec2_launch.outputs.public_ip }}" >> $GITHUB_OUTPUT
+
     - name: Write EC2 private key
-      run: echo "${{ secrets.AWS_EC2_PRIVATE_KEY }}" > ec2-key.pem && chmod 600 ec2-key.pem
+      run: |
+        echo "${{ secrets.AWS_EC2_PRIVATE_KEY }}" > ec2-key.pem && chmod 600 ec2-key.pem
       
     - name: Install InSpec
       run: |
