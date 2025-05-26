@@ -206,6 +206,28 @@ jobs:
           --output text)
         echo "web_public_ip=$web_public_ip" >> $GITHUB_OUTPUT
 
+    - name: Wait for DB EC2 SSH to be ready
+      run: |
+        for i in {1..30}; do
+          if ssh -o StrictHostKeyChecking=no -i ec2-key.pem ubuntu@${{ steps.db_get_ip.outputs.db_public_ip }} exit 2>/dev/null; then
+            echo "✅ SSH is ready"
+            break
+          fi
+          echo "⏳ Waiting for SSH... ($i)"
+          sleep 5
+        done
+
+    - name: Wait for web EC2 SSH to be ready
+      run: |
+        for i in {1..30}; do
+          if ssh -o StrictHostKeyChecking=no -i ec2-key.pem ubuntu@${{ steps.web_get_ip.outputs.web_public_ip }} exit 2>/dev/null; then
+            echo "✅ SSH is ready"
+            break
+          fi
+          echo "⏳ Waiting for SSH... ($i)"
+          sleep 5
+        done
+
     - name: Write EC2 private key
       run: echo "${{ secrets.AWS_EC2_PRIVATE_KEY }}" > ./ec2-key.pem && chmod 600 ./ec2-key.pem
 
@@ -229,15 +251,15 @@ jobs:
         ansible-playbook -i "${{ steps.web_get_ip.outputs.web_public_ip }}," image-web.yml \
         -u ubuntu --private-key ec2-key.pem
     
-    # - name: Terminate DB EC2 instance
-    #   if: always() # Ensures termination even if previous steps fail
-    #   run: |
-    #     aws ec2 terminate-instances --instance-ids ${{ steps.db_ec2_launch.outputs.db_instance_id }}
+    - name: Terminate DB EC2 instance
+      if: always() # Ensures termination even if previous steps fail
+      run: |
+        aws ec2 terminate-instances --instance-ids ${{ steps.db_ec2_launch.outputs.db_instance_id }}
       
-    # - name: Terminate web EC2 instance
-    #   if: always() # Ensures termination even if previous steps fail
-    #   run: |
-    #     aws ec2 terminate-instances --instance-ids ${{ steps.web_ec2_launch.outputs.web_instance_id }}
+    - name: Terminate web EC2 instance
+      if: always() # Ensures termination even if previous steps fail
+      run: |
+        aws ec2 terminate-instances --instance-ids ${{ steps.web_ec2_launch.outputs.web_instance_id }}
 
 
   
