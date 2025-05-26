@@ -113,6 +113,10 @@ jobs:
       run: |
         curl https://omnitruck.chef.io/install.sh | sudo bash -s -- -P inspec
 
+    - name: Find InSpec license
+      run: |
+        inspec license status
+
     - name: Run InSpec test on EC2
       run: |
         CHEF_LICENSE=accept inspec exec inspec-profile/controls/image-base.rb \
