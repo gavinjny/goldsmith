@@ -1,4 +1,4 @@
-name: Create & deploy Storefront infrastucture
+name: Create & deploy Storefront infrastructure
 
 on:
   push:
@@ -9,6 +9,9 @@ permissions:
   contents: read
 
 jobs:
+  # The following jobs are currently commented out.
+  # Uncomment them and adjust 'needs:' dependencies as you build out your pipeline.
+
   # reset-aws:
   #   name: Reset AWS objects
   #   uses: ./.github/workflows/pipeline-drop-aws.yml
@@ -16,12 +19,12 @@ jobs:
 
   # create-golden-image:
   #   name: Create base image
-  #   needs: reset-aws
+  #   needs: reset-aws # Ensure 'reset-aws' is uncommented if this dependency is active
   #   runs-on: ubuntu-latest
   #   environment: Prod
   #   outputs:
   #     ami_id: ${{ steps.packerbuild.outputs.ami_id }}
-    
+
   #   steps:
   #   - name: Checkout
   #     uses: actions/checkout@v4
@@ -51,24 +54,26 @@ jobs:
 
   #       echo "Extracting AMI ID from output..."
   #       AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
-        
+
   #       # share ami with dev admin user
   #       aws ec2 modify-image-attribute \
-  #         --image-id $AMI_ID \
+  #         --image-id "$AMI_ID" \
   #         --launch-permission "Add=[{UserId=${{ secrets.AWS_USER_DEVADMIN }}}]"
 
   #       echo "AMI ID: $AMI_ID"
   #       echo "ami_id=$AMI_ID" >> $GITHUB_OUTPUT
-# --------------------------------------------------
+
   test-base-image:
     name: Test base image
+    # Uncomment the 'needs' line below and remove the hardcoded AMI ID
+    # once 'create-golden-image' job is active and producing output.
     # needs: create-golden-image
     runs-on: ubuntu-latest
     environment: Prod
     outputs:
       instance_id: ${{ steps.ec2_launch.outputs.instance_id }}
       public_ip: ${{ steps.ec2_launch.outputs.public_ip }}
-    
+
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -79,7 +84,6 @@ jobs:
         role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
         aws-region: ${{ vars.AWS_REGION }}
 
-    # --image-id ${{ needs.create-golden-image.outputs.ami_id }}
     - name: Launch EC2 instance from AMI
       id: ec2_launch
       run: |
@@ -87,7 +91,7 @@ jobs:
         TIMESTAMP=$(date +%s)
         NAME="ec2-base-zero-storefront-${TIMESTAMP}"
         INSTANCE_INFO=$(aws ec2 run-instances \
-          --image-id "ami-0caf48451cb6750de" \
+          --image-id "ami-0caf48451cb6750de" \ # REMINDER: Replace with dynamic AMI_ID from 'create-golden-image'
           --count 1 \
           --instance-type t2.micro \
           --key-name ${{ secrets.AWS_KEYNAME }} \
@@ -98,18 +102,20 @@ jobs:
           --output text)
         instance_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
         public_ip=$(echo "$INSTANCE_INFO" | awk '{print $2}')
-        echo "instance_id=$instance_id" >> $GITHUB_OUTPUT
-        echo "public_ip=$public_ip" >> $GITHUB_OUTPUT
+        echo "instance_id=$instance_id" >> "$GITHUB_OUTPUT"
+        echo "public_ip=$public_ip" >> "$GITHUB_OUTPUT"
 
-    - name: Debug public IP
+    - name: Debug public IP and Instance ID
       run: |
-        echo "Public IP is: ${{ needs.test-base-image.outputs.public_ip }}" >> $GITHUB_OUTPUT
-        echo "Instance ID is: ${{ needs.test-base-image.outputs.instance_id }}" >> $GITHUB_OUTPUT
+        # These outputs are from the *current* job's steps, not from 'needs'.
+        # Remove 'needs.test-base-image' prefix.
+        echo "Public IP is: ${{ steps.ec2_launch.outputs.public_ip }}"
+        echo "Instance ID is: ${{ steps.ec2_launch.outputs.instance_id }}"
 
     - name: Write EC2 private key
       run: |
         echo "${{ secrets.AWS_EC2_PRIVATE_KEY }}" > ec2-key.pem && chmod 600 ec2-key.pem
-      
+
     - name: Install InSpec
       run: |
         curl https://omnitruck.chef.io/install.sh | sudo bash -s -- -P inspec
@@ -123,53 +129,54 @@ jobs:
           --key-files ./ec2-key.pem
 
     - name: Terminate EC2 instance
-      if: always()
+      if: always() # Ensures termination even if previous steps fail
       run: |
         aws ec2 terminate-instances --instance-ids ${{ steps.ec2_launch.outputs.instance_id }}
-    # distribute-image:
-    #   name: Distribute golden image
-    #   runs-on: ubuntu-latest
-    #   environment: Prod
-    #   needs: test-image
 
-    #   steps:
-    #   - name: Checkout
-    #     uses: actions/checkout@v4
+  # distribute-image:
+  #   name: Distribute golden image
+  #   runs-on: ubuntu-latest
+  #   environment: Prod
+  #   needs: test-base-image # Corrected dependency from 'test-image'
 
-    #   - name: Configure AWS credentials
-    #     uses: aws-actions/configure-aws-credentials@v2
-    #     with:
-    #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
-    #       aws-region: ${{ vars.AWS_REGION }}
-          
-    # setup-dashboard:
-    #   name: Setup dashboard
-    #   runs-on: ubuntu-latest
-    #   environment: Prod
-    #   needs: distribute-image
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v4
 
-    #   steps:
-    #   - name: Checkout
-    #     uses: actions/checkout@v4
+  #   - name: Configure AWS credentials
+  #     uses: aws-actions/configure-aws-credentials@v2
+  #     with:
+  #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+  #       aws-region: ${{ vars.AWS_REGION }}
 
-    #   - name: Configure AWS credentials
-    #     uses: aws-actions/configure-aws-credentials@v2
-    #     with:
-    #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
-    #       aws-region: ${{ vars.AWS_REGION }}
+  # setup-dashboard:
+  #   name: Setup dashboard
+  #   runs-on: ubuntu-latest
+  #   environment: Prod
+  #   needs: distribute-image
 
-    # incident-tracking:
-    #   name: Setup incident tracking
-    #   runs-on: ubuntu-latest
-    #   environment: Prod
-    #   needs: setup-dashboard
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v4
 
-    #   steps:
-    #   - name: Checkout
-    #     uses: actions/checkout@v4
+  #   - name: Configure AWS credentials
+  #     uses: aws-actions/configure-aws-credentials@v2
+  #     with:
+  #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+  #       aws-region: ${{ vars.AWS_REGION }}
 
-    #   - name: Configure AWS credentials
-    #     uses: aws-actions/configure-aws-credentials@v2
-    #     with:
-    #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
-    #       aws-region: ${{ vars.AWS_REGION }}
+  # incident-tracking:
+  #   name: Setup incident tracking
+  #   runs-on: ubuntu-latest
+  #   environment: Prod
+  #   needs: setup-dashboard
+
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v4
+
+  #   - name: Configure AWS credentials
+  #     uses: aws-actions/configure-aws-credentials@v2
+  #     with:
+  #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+  #       aws-region: ${{ vars.AWS_REGION }}
