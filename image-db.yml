@@ -1,0 +1,9 @@
+# db.yml
+- hosts: all
+  become: true
+  tasks:
+    - name: Install MySQL Server on Ubuntu
+      apt:
+        name: mysql-server
+        state: present
+        update_cache: yes

@@ -1,0 +1,9 @@
+# web.yml
+- hosts: all
+  become: true
+  tasks:
+    - name: Install Apache2 on Ubuntu
+      apt:
+        name: apache2
+        state: present
+        update_cache: yes
