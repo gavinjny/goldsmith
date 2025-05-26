@@ -112,7 +112,7 @@ jobs:
     - name: Install InSpec
       run: |
         curl https://omnitruck.chef.io/install.sh | sudo bash -s -- -P inspec
-        
+
     - name: Run InSpec test on EC2
       run: |
         set -e
