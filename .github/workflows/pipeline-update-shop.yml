@@ -115,7 +115,7 @@ jobs:
 
     - name: Find InSpec license
       run: |
-        inspec license status
+        CHEF_LICENSE=accept inspec license status
 
     - name: Run InSpec test on EC2
       run: |
