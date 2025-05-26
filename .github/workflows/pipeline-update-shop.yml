@@ -51,23 +51,18 @@ jobs:
   #     run: |
   #       echo "Running Packer build..."
   #       packer build -var "aws_region=${{ vars.AWS_REGION }}" -machine-readable image-base.pkr.hcl | tee packer_output.log
-
   #       echo "Extracting AMI ID from output..."
   #       AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
 
-  #       # share ami with dev admin user
+  #   - name: Share AMI with dev admin user
   #       aws ec2 modify-image-attribute \
   #         --image-id "$AMI_ID" \
   #         --launch-permission "Add=[{UserId=${{ secrets.AWS_USER_DEVADMIN }}}]"
-
   #       echo "AMI ID: $AMI_ID"
   #       echo "ami_id=$AMI_ID" >> $GITHUB_OUTPUT
 
   test-base-image:
     name: Test base image
-    # Uncomment the 'needs' line below and remove the hardcoded AMI ID
-    # once 'create-golden-image' job is active and producing output.
-    # needs: create-golden-image
     runs-on: ubuntu-latest
     environment: Prod
     outputs:
@@ -87,7 +82,6 @@ jobs:
     - name: Launch EC2 instance from AMI
       id: ec2_launch
       run: |
-        set -e
         TIMESTAMP=$(date +%s)
         NAME="ec2-base-zero-storefront-${TIMESTAMP}"
         INSTANCE_INFO=$(aws ec2 run-instances \
@@ -98,19 +92,24 @@ jobs:
           --subnet-id ${{ secrets.AWS_SUBNET }} \
           --security-group-ids ${{ secrets.AWS_SECURITYGROUP }} \
           --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME},{Key=Role,Value=Base}]" \
-          --query 'Instances[0].[InstanceId,PublicIpAddress]' \
+          --query 'Instances[0].[InstanceId]' \
           --output text)
         instance_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
-        public_ip=$(echo "$INSTANCE_INFO" | awk '{print $2}')
-        echo "instance_id=$instance_id"
-        echo "public_ip=$public_ip"
-        echo "$INSTANCE_INFO"
+        echo "instance_id=$instance_id" >> $GITHUB_OUTPUT
+
+    - name: Retrieve instance public ip address
+      id: get_ip
+      run: |
+        public_ip=$(aws ec2 describe-instances \
+          --instance-ids "${{ steps.ec2_launch.outputs.instance_id }}" \
+          --query 'Reservations[0].Instances[0].PublicIpAddress' \
+          --output text)
+        echo "public_ip=$public_ip" >> $GITHUB_OUTPUT
+
 
     - name: Debug public IP and Instance ID
       run: |
-        # These outputs are from the *current* job's steps, not from 'needs'.
-        # Remove 'needs.test-base-image' prefix.
-        echo "Public IP is: ${{ steps.ec2_launch.outputs.public_ip }}"
+        echo "Public IP is: ${{ steps.get_ip.outputs.public_ip }}"
         echo "Instance ID is: ${{ steps.ec2_launch.outputs.instance_id }}"
 
 
