@@ -132,7 +132,7 @@ jobs:
 
 
   create-role-image:
-    name: Create and test role image
+    name: Create and customize role images
     runs-on: ubuntu-latest
     needs: test-base-image
     environment: Prod
@@ -213,14 +213,17 @@ jobs:
       run: |
         sudo apt update
         sudo apt install -y ansible
+    
+    - name: Return Public IPs
+      run: |
+        echo "DB IP: ${{ steps.db_ec2_launch.outputs.db_public_ip }}"
+        echo "Web IP: ${{ steps.web_ec2_launch.outputs.web_public_ip }}"
 
-    # - name: Customize DB instance
     - name: Run DB customization
       run: |
         ansible-playbook -i "${{ steps.db_ec2_launch.outputs.db_public_ip }}," image-db.yml \
         -u ubuntu --private-key ec2-key.pem
 
-    # - name: Customize web instance
     - name: Run web customization
       run: |
         ansible-playbook -i "${{ steps.web_ec2_launch.outputs.web_public_ip }}," image-web.yml \
