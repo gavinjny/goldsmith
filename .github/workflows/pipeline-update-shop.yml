@@ -167,6 +167,18 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    - name: GavinDump GitHub context
+      run: echo '${{ toJson(github) }}'
+
+    - name: GavinGenerate build number for golden image
+      id: ami_build
+      run: |
+        RUN_NUM=${GITHUB_RUN_NUMBER}
+        TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
+        BUILD_NUMBER="${TIMESTAMP}-${RUN_NUM}"
+        echo "Generated AMI build number: $BUILD_NUMBER"
+        echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
       with:
