@@ -1,4 +1,3 @@
-# web.yml
 - hosts: all
   become: true
   tasks:

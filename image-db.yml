@@ -1,4 +1,3 @@
-# db.yml
 - hosts: all
   become: true
   tasks:

@@ -151,7 +151,9 @@ jobs:
   create-role-image:
     name: Create and customize role images
     runs-on: ubuntu-latest
-    needs: test-base-image
+    needs:
+      - test-base-image
+      - create-golden-image
     environment: Prod
     outputs:
       web_ec2_id: ${{ steps.web_ec2_launch.outputs.web_ec2_id }}
