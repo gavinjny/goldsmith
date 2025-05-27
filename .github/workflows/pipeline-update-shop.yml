@@ -183,10 +183,9 @@ jobs:
     - name: Launch DB EC2 instance from AMI
       id: db_ec2_launch
       run: |
-        TIMESTAMP=$(date +%s)
-        NAME="ec2-db-zero-storefront-${TIMESTAMP}"
+        NAME="ec2-db-zero-storefront-${{ needs.create-golden-image.outputs.base_ami_namepart }}"
         INSTANCE_INFO=$(aws ec2 run-instances \
-          --image-id "ami-0caf48451cb6750de" \
+          --image-id "${{ needs.create-golden-image.outputs.base_ami_id }}" \
           --count 1 \
           --instance-type t2.micro \
           --key-name ${{ secrets.AWS_KEYNAME }} \
@@ -210,10 +209,9 @@ jobs:
     - name: Launch web EC2 instance from AMI
       id: web_ec2_launch
       run: |
-        TIMESTAMP=$(date +%s)
-        NAME="ec2-web-zero-storefront-${TIMESTAMP}"
+        NAME="ec2-web-zero-storefront-${{ needs.create-golden-image.outputs.base_ami_namepart }}"
         INSTANCE_INFO=$(aws ec2 run-instances \
-          --image-id "${{ steps.get_base_ami_name.outputs.base_ami_name }}" \
+          --image-id "${{ needs.create-golden-image.outputs.base_ami_id }}" \
           --count 1 \
           --instance-type t2.micro \
           --key-name ${{ secrets.AWS_KEYNAME }} \
