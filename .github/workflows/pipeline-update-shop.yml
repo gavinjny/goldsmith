@@ -17,24 +17,25 @@ jobs:
   #   uses: ./.github/workflows/pipeline-drop-aws.yml
   #   secrets: inherit
 
-  # create-golden-image:
-  #   name: Create base image
-  #   needs: reset-aws 
-  #   runs-on: ubuntu-latest
-  #   environment: Prod
-  #   outputs:
-  #     base_ami_id: ${{ steps.packerbuild.outputs.base_ami_id }}
-  #     base_ami_name: ${{ steps.get_base_ami_name.outputs.base_ami_name }}
+  create-golden-image:
+    name: Create base image
+    # needs: reset-aws 
+    runs-on: ubuntu-latest
+    environment: Prod
+    outputs:
+      base_ami_id: "ami-0caf48451cb6750de" # ${{ steps.packerbuild.outputs.base_ami_id }}
+      base_ami_name: "snapshot-storefront-base-1748206557" # ${{ steps.get_base_ami_name.outputs.base_ami_name }}
+      base_ami_namepart: "1748206557" # ${{ steps.split_ami_name.outputs.base_ami_name }}
 
-  #   steps:
-  #   - name: Checkout
-  #     uses: actions/checkout@v4
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
 
-  #   - name: Configure AWS credentials
-  #     uses: aws-actions/configure-aws-credentials@v2
-  #     with:
-  #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
-  #       aws-region: ${{ vars.AWS_REGION }}
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+        aws-region: ${{ vars.AWS_REGION }}
 
   #   - name: Install Packer
   #     uses: hashicorp/setup-packer@v2
@@ -68,6 +69,13 @@ jobs:
       
       #     echo "AMI Name: $AMI_NAME"
       #     echo "base_ami_name=$AMI_NAME" >> $GITHUB_OUTPUT
+
+    - name: Extract last part from AMI name part
+      id: split_ami_name
+      run: |
+        base_ami_name="${{ steps.get_base_ami_name.outputs.base_ami_name }}"
+        base_ami_namepart=$(echo "$base_ami_name" | awk -F '-' '{print $NF}')
+        echo "base_ami_namepart=$base_ami_namepart" >> $GITHUB_OUTPUT
 
   test-base-image:
     name: Test base image
@@ -195,7 +203,7 @@ jobs:
         TIMESTAMP=$(date +%s)
         NAME="ec2-web-zero-storefront-${TIMESTAMP}"
         INSTANCE_INFO=$(aws ec2 run-instances \
-          --image-id "ami-0caf48451cb6750de" \
+          --image-id "${{ steps.get_base_ami_name.outputs.base_ami_name }}" \
           --count 1 \
           --instance-type t2.micro \
           --key-name ${{ secrets.AWS_KEYNAME }} \
@@ -226,7 +234,7 @@ jobs:
         sudo apt update
         sudo apt install -y ansible
 
-    - name: Wait for DB EC2 SSH to be ready
+    - name: Wait for EC2s to be ready
       run: |
         sleep 180
 
@@ -272,7 +280,7 @@ jobs:
         echo "Creating db AMI from instance: $ec2_id"
         AMI_ID=$(aws ec2 create-image \
           --instance-id "$ec2_id" \
-          --name "snapshot-storefront-db" \
+          --name "snapshot-storefront-db-${{ steps.split_ami_name.outputs.base_ami_namepart }}" \
           --no-reboot \
           --query 'ImageId' \
           --output text)
@@ -287,7 +295,7 @@ jobs:
         echo "Creating web AMI from instance: $ec2_id"
         AMI_ID=$(aws ec2 create-image \
           --instance-id "$ec2_id" \
-          --name "snapshot-storefront-db" \
+          --name "snapshot-storefront-db-${{ steps.split_ami_name.outputs.base_ami_namepart }}" \
           --no-reboot \
           --query 'ImageId' \
           --output text)
