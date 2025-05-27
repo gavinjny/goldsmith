@@ -38,7 +38,7 @@ source "amazon-ebs" "ubuntu" {
 
   tags = {
     Name        = "snapshot-storefront-base-${var.version}"
-    CreatedBy   = "Packer"
+    CreatedBy   = "Goldsmith pipeline"
     Environment = "Prod"
   }
 }
