@@ -70,12 +70,13 @@ jobs:
       #     echo "AMI Name: $AMI_NAME"
       #     echo "base_ami_name=$AMI_NAME" >> $GITHUB_OUTPUT
 
-    - name: Extract last part from AMI name part
-      id: split_ami_name
-      run: |
-        base_ami_name="${{ steps.get_base_ami_name.outputs.base_ami_name }}"
-        base_ami_namepart=$(echo "$base_ami_name" | awk -F '-' '{print $NF}')
-        echo "base_ami_namepart=$base_ami_namepart" >> $GITHUB_OUTPUT
+    # - name: Extract last part from AMI name part
+    #   id: split_ami_name
+    #   run: |
+    #     base_ami_name="${{ steps.get_base_ami_name.outputs.base_ami_name }}"
+    #     base_ami_namepart=$(echo "$base_ami_name" | awk -F '-' '{print $NF}')
+    #     echo $base_ami_namepart
+    #     echo "base_ami_namepart=$base_ami_namepart" >> $GITHUB_OUTPUT
 
   test-base-image:
     name: Test base image
@@ -280,7 +281,7 @@ jobs:
         echo "Creating db AMI from instance: $ec2_id"
         AMI_ID=$(aws ec2 create-image \
           --instance-id "$ec2_id" \
-          --name "snapshot-storefront-db-${{ steps.split_ami_name.outputs.base_ami_namepart }}" \
+          --name "snapshot-storefront-db-${{ needs.create-golden-image.outputs.base_ami_namepart }}" \
           --no-reboot \
           --query 'ImageId' \
           --output text)
@@ -295,7 +296,7 @@ jobs:
         echo "Creating web AMI from instance: $ec2_id"
         AMI_ID=$(aws ec2 create-image \
           --instance-id "$ec2_id" \
-          --name "snapshot-storefront-db-${{ steps.split_ami_name.outputs.base_ami_namepart }}" \
+          --name "snapshot-storefront-web-${{ needs.create-golden-image.outputs.base_ami_namepart }}" \
           --no-reboot \
           --query 'ImageId' \
           --output text)
