@@ -46,13 +46,17 @@ jobs:
   #     run: packer init image-base.pkr.hcl
 
   #   - name: Validate Packer template
-  #     run: packer validate -var "aws_region=${{ vars.AWS_REGION }}" image-base.pkr.hcl
+      # run: |
+      #   packer validate -var "aws_region=${{ vars.AWS_REGION }}" -var "version=" image-base.pkr.hcl
 
   #   - name: Build and customize base AMI
   #     id: packerbuild
   #     run: |
-  #       echo "Running Packer build..."
-  #       packer build -var "aws_region=${{ vars.AWS_REGION }}" -machine-readable image-base.pkr.hcl | tee packer_output.log
+          # RUN_NUM=${GITHUB_RUN_NUMBER}
+          # TIMESTAMP=$(date -u +%Y%m%d)
+          # version="v${TIMESTAMP}.${RUN_NUM}"
+          # echo "Running Packer build to create version $version ..."
+  #       packer build -var "aws_region=${{ vars.AWS_REGION }}" -var "version=$version" -machine-readable image-base.pkr.hcl | tee packer_output.log
   #       echo "Extracting AMI ID from output..."
   #       AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
 
@@ -169,15 +173,6 @@ jobs:
 
     - name: GavinDump GitHub context
       run: echo '${{ toJson(github) }}'
-
-    - name: GavinGenerate build number for golden image
-      id: ami_build
-      run: |
-        RUN_NUM=${GITHUB_RUN_NUMBER}
-        TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
-        BUILD_NUMBER="${TIMESTAMP}-${RUN_NUM}"
-        echo "Generated AMI build number: $BUILD_NUMBER"
-        echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2

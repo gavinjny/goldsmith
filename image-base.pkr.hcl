@@ -3,6 +3,12 @@ variable "aws_region" {
   default = "default"
 }
 
+variable "version" {
+  type    = string
+  default = "default"
+}
+
+
 packer {
   required_plugins {
     amazon = {
@@ -13,7 +19,7 @@ packer {
 }
 
 source "amazon-ebs" "ubuntu" {
-  ami_name               = "ami-storefront-base-{{timestamp}}"
+  ami_name               = "ami-storefront-base-${var.version}"
   instance_type          = "t2.micro"
   region                 = var.aws_region
   ssh_username           = "ubuntu"
@@ -31,7 +37,7 @@ source "amazon-ebs" "ubuntu" {
   }
 
   tags = {
-    Name        = "snapshot-storefront-base-{{timestamp}}"
+    Name        = "snapshot-storefront-base-${var.version}"
     CreatedBy   = "Packer"
     Environment = "Prod"
   }
