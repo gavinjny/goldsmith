@@ -432,13 +432,13 @@ jobs:
       run: |
         terraform init
         terraform apply -auto-approve \
-          -var ami_id = $AMI_ID \
-          -var instance_type = $INSTANCE_TYPE \
-          -var key_name = $KEY_NAME \
-          -var security_group = $SECURITY_GROUP \
-          -var iam_instance_profile = $IAM_INSTANCE \
-          -var aws_region = $AWS_REGION \
-          -var vpc = $VPC
+          -var="ami_id=$AMI_ID" \
+          -var="instance_type=$INSTANCE_TYPE" \
+          -var="key_name=$KEY_NAME" \
+          -var="security_group=$SECURITY_GROUP" \
+          -var="iam_instance_profile=$IAM_INSTANCE" \
+          -var="aws_region=$AWS_REGION" \
+          -var="vpc=$VPC"
 
       env:
         AMD_ID: ${{ needs.create-role-image.outputs.web_ami_id }}
