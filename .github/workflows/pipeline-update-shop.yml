@@ -8,6 +8,9 @@ permissions:
   id-token: write
   contents: read
 
+env:
+  VERSION: "1.7.8.11" # 1.7.8.11/8.2.1 
+
 jobs:
   # reset-aws:
   #   name: Reset AWS objects
@@ -278,12 +281,18 @@ jobs:
     - name: Run DB customization
       run: |
         ansible-playbook -i "${{ steps.db_get_ip.outputs.db_public_ip }}," image-db.yml \
-        -u ubuntu --private-key ec2-key.pem
+        -u ubuntu --private-key ec2-key.pem \
+        --extra-vars "version=$VERSION"
+      # env:
+      #   VERSION: "1.7.8.11" # 1.7.8.11/8.2.1
 
     - name: Run web customization
       run: |
         ansible-playbook -i "${{ steps.web_get_ip.outputs.web_public_ip }}," image-web.yml \
-        -u ubuntu --private-key ec2-key.pem
+        -u ubuntu --private-key ec2-key.pem \
+        --extra-vars "version=$VERSION"
+      # env:
+      #   VERSION: "1.7.8.11" # 1.7.8.11/8.2.1 
 
     - name: Delete DB AMI if it exists
       run: | 

@@ -74,7 +74,7 @@ Create pipeline following these steps. All steps use Packer
         1. No – Delete image
 1. Create child image – role specific changes(web, db)
     1. Run Ansible to customize server
-    1. Install Prestashop (https://assets.prestashop3.com/dst/edition/corporate/8.2.0/prestashop_edition_classic_version_8.2.0.zip or https://github.com/PrestaShop/PrestaShop/releases/download/1.7.8.11/prestashop_1.7.8.11.zip)
+    1. Install Prestashop
     1. Test deployment
         1. Security - Lynis (lightweight, Linux-specific)
         1. Application Configuration - Ansible test modules (assert, setup) or InSpec
