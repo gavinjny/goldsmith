@@ -86,7 +86,7 @@ jobs:
 # -------------------------------------------------------------------------------------------
   test-base-image:
     name: Test base image
-    steps: create-golden-image
+    needs: create-golden-image
     runs-on: ubuntu-latest
     environment: Prod
     outputs:
@@ -163,7 +163,7 @@ jobs:
   create-role-image:
     name: Create and customize role images
     runs-on: ubuntu-latest
-    steps: test-base-image
+    needs: test-base-image
     environment: Prod
     outputs:
       # Corrected: These outputs should reflect the actual steps where they are created.
