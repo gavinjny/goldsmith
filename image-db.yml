@@ -26,6 +26,13 @@
       command: snap start amazon-ssm-agent
 
 # ----------------------------INSTALL PRESTASHOP DB----------------------------------
+    - name: Install Python MySQL client (PyMySQL)
+      become: true
+      apt:
+        name: python3-pymysql
+        state: present
+        update_cache: yes
+
     - name: Create PrestaShop database
       mysql_db:
         name: "storefront"
