@@ -22,11 +22,9 @@
       changed_when: "'installed' in ssm_result.stdout or 'updated' in ssm_result.stdout"
       failed_when: false
 
-    - name: Enable & start the SSM agent
-      systemd:
-        name: amazon-ssm-agent
-        enabled: yes
-        state: started
+    - name: Start amazon-ssm-agent via snap
+      command: snap start amazon-ssm-agent
+
 # ----------------------------INSTALL PRESTASHOP WEB----------------------------------
     - name: Create website root directory
       file:
