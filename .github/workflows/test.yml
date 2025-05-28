@@ -21,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: Prod
     outputs:
+      # These outputs are currently hardcoded; if you uncomment the Packer steps later,
+      # these will need to be dynamically populated from those steps' outputs.
       base_ami_id: "ami-0caf48451cb6750de"
       base_ami_name: "snapshot-storefront-base-v20250526.1"
       base_ami_namepart: "v20250526.1"
@@ -34,51 +36,6 @@ jobs:
       with:
         role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
         aws-region: ${{ vars.AWS_REGION }}
-
-    # - name: Install Packer
-    #   uses: hashicorp/setup-packer@v2
-    #   with:
-    #     version: 'latest'
-
-    # - name: Initialize Packer
-    #   run: packer init image-base.pkr.hcl
-
-    # - name: Validate Packer template
-    #   run: |
-    #     packer validate -var "aws_region=${{ vars.AWS_REGION }}" -var "version=" image-base.pkr.hcl
-
-    # - name: Build and customize base AMI
-    #   id: packerbuild
-    #   run: |
-    #       RUN_NUM=${GITHUB_RUN_NUMBER}
-    #       TIMESTAMP=$(date -u +%Y%m%d)
-    #       version="v${TIMESTAMP}.${RUN_NUM}"
-    #       echo "Running Packer build to create version $version ..."
-    #       packer build -var "aws_region=${{ vars.AWS_REGION }}" -var "version=$version" -machine-readable image-base.pkr.hcl | tee packer_output.log
-    #       echo "Extracting AMI ID from output..."
-    #       AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
-
-    # - name: Get base AMI name
-    #   id: get_base_ami_name
-    #   run: |
-    #     AMI_ID=${{ steps.packerbuild.outputs.base_ami_id }}
-
-    #     echo "Looking up AMI Name for: $AMI_ID"
-    #     AMI_NAME=$(aws ec2 describe-images \
-    #       --image-ids "$AMI_ID" \
-    #       --query 'Images[0].Name' \
-    #       --output text)
-
-    #     echo "AMI Name: $AMI_NAME"
-    #     echo "base_ami_name=$AMI_NAME" >> $GITHUB_OUTPUT
-
-    # - name: Extract last part from AMI name part
-    #   id: split_ami_name
-    #   run: |
-    #     base_ami_name="${{ steps.get_base_ami_name.outputs.base_ami_name }}"
-    #     base_ami_namepart=$(echo "$base_ami_name" | awk -F '-' '{print $NF}')
-    #     echo $base_ami_namepart
-    #     echo "base_ami_namepart=$base_ami_namepart" >> $GITHUB_OUTPUT
 
 # -------------------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------------------
@@ -128,23 +85,6 @@ jobs:
           --query 'Reservations[0].Instances[0].PublicIpAddress' \
           --output text)
         echo "base_public_ip=$base_public_ip" >> $GITHUB_OUTPUT
-
-    # - name: Write EC2 private key
-    #   run: echo "${{ secrets.AWS_EC2_PRIVATE_KEY }}" > ./ec2-key.pem && chmod 600 ./ec2-key.pem
-
-    # - name: Install InSpec
-    #   run: |
-    #     curl https://omnitruck.chef.io/install.sh | sudo bash -s -- -P inspec
-
-    # - name: Find InSpec license
-    #   run: |
-    #     CHEF_LICENSE=accept inspec license status
-
-    # - name: Run InSpec test on EC2
-    #   run: |
-    #     CHEF_LICENSE=accept inspec exec inspec-profile/controls/image-base.rb \
-    #       -t ssh://ubuntu@${{ steps.base_get_ip.outputs.base_public_ip }} \
-    #       --key-files ./ec2-key.pem
 
     - name: Terminate base EC2 instance
       if: always() # Ensures termination even if previous steps fail
@@ -284,7 +224,8 @@ jobs:
       run: |
         ansible-playbook -i "${{ steps.web_get_ip.outputs.web_public_ip }}," image-web.yml \
         -u ubuntu --private-key ec2-key.pem
-
+# -------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
     - name: Create DB AMI
       id: db_create_ami
       run: |
@@ -334,66 +275,3 @@ jobs:
         echo "DB AMI: ${{ steps.db_create_ami.outputs.db_ami_id }}"
         echo "Web AMI: ${{ steps.web_create_ami.outputs.web_ami_id }}"
 
-    # - name: Terminate DB EC2 instance
-    #   if: always() # Ensures termination even if previous steps fail
-    #   run: |
-    #     aws ec2 terminate-instances --instance-ids ${{ steps.db_ec2_launch.outputs.db_ec2_id }}
-
-    # - name: Terminate web EC2 instance
-    #   if: always() # Ensures termination even if previous steps fail
-    #   run: |
-    #     aws ec2 terminate-instances --instance-ids ${{ steps.web_ec2_launch.outputs.web_ec2_id }}
-
-# -------------------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------------------
-  # distribute-image:
-  #   name: Distribute golden image
-  #   runs-on: ubuntu-latest
-  #   environment: Prod
-  #   steps: test-base-image
-
-  #   steps:
-  #   - name: Checkout
-  #     uses: actions/checkout@v4
-
-  #   - name: Configure AWS credentials
-  #     uses: aws-actions/configure-aws-credentials@v2
-  #     with:
-  #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
-  #       aws-region: ${{ vars.AWS_REGION }}
-
-# -------------------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------------------
-  # setup-dashboard:
-  #   name: Setup dashboard
-  #   runs-on: ubuntu-latest
-  #   environment: Prod
-  #   steps: distribute-image
-
-  #   steps:
-  #   - name: Checkout
-  #     uses: actions/checkout@v4
-
-  #   - name: Configure AWS credentials
-  #     uses: aws-actions/configure-aws-credentials@v2
-  #     with:
-  #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
-  #       aws-region: ${{ vars.AWS_REGION }}
-
-# -------------------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------------------
-  # incident-tracking:
-  #   name: Setup incident tracking
-  #   runs-on: ubuntu-latest
-  #   environment: Prod
-  #   steps: setup-dashboard
-
-  #   steps:
-  #   - name: Checkout
-  #     uses: actions/checkout@v4
-
-  #   - name: Configure AWS credentials
-  #     uses: aws-actions/configure-aws-credentials@v2
-  #     with:
-  #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
-  #       aws-region: ${{ vars.AWS_REGION }}
