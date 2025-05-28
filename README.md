@@ -20,6 +20,7 @@ This project is a demonstration Github pipeline(Goldsmith) to create, update and
 1.	Linux 
 1.	Debugging
 1.	SSH certification usage
+1. Git Actions pipeline
 1. AWS (EC2, AMI, ASG, ALB, IAM, Cloudwatch)
 1. MySQL
 1. Yaml

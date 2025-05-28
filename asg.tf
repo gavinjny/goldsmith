@@ -35,7 +35,7 @@ resource "aws_autoscaling_group" "storefront_asg" {
   desired_capacity     = 2
   max_size             = 3
   min_size             = 1
-  vpc_zone_identifier  = var.vpc
+  vpc_zone_identifier  = [var.vpc]
 
   launch_template {
     id      = aws_launch_template.storefront.id
