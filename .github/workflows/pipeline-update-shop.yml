@@ -108,9 +108,9 @@ jobs:
       id: base_ec2_launch
       run: |
         # Corrected: Referencing job outputs using 'steps' for cross-job data.
-        NAME="ec2-base-zero-storefront-${{ steps.create-golden-image.outputs.base_ami_namepart }}"
+        NAME="ec2-base-zero-storefront-${{ needs.create-golden-image.outputs.base_ami_namepart }}"
         INSTANCE_INFO=$(aws ec2 run-instances \
-          --image-id "${{ steps.create-golden-image.outputs.base_ami_id }}" \
+          --image-id "${{ needs.create-golden-image.outputs.base_ami_id }}" \
           --count 1 \
           --instance-type t2.micro \
           --key-name ${{ secrets.AWS_KEYNAME }} \
