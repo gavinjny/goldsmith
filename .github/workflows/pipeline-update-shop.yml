@@ -284,6 +284,7 @@ jobs:
       run: |
         ansible-playbook -i "${{ steps.web_get_ip.outputs.web_public_ip }}," image-web.yml \
         -u ubuntu --private-key ec2-key.pem
+
     - name: Delete DB AMI if it exists
       run: | 
         echo "Looking up AMI with name: $AMI_NAME"
@@ -312,29 +313,7 @@ jobs:
         fi
 
       env:
-          AMI_NAME: ami-storefront-db-${{ needs.create-golden-image.outputs.base_ami_namepart }}
-
-    - name: Create DB AMI
-      id: db_create_ami
-      run: |
-        ec2_id=${{ steps.db_ec2_launch.outputs.db_ec2_id }}
-        echo "Creating db AMI from instance: $ec2_id"
-        AMI_ID=$(aws ec2 create-image \
-          --instance-id "$ec2_id" \
-          --name "ami-storefront-db-${{ needs.create-golden-image.outputs.base_ami_namepart }}" \
-          --no-reboot \
-          --query 'ImageId' \
-          --output text)
-
-        aws ec2 create-tags \
-          --resources "$AMI_ID" \
-          --tags \
-          Key=Name,Value="snapshot-storefront-db-${{ needs.create-golden-image.outputs.base_ami_namepart }}" \
-          Key=CreatedBy,Value="Goldsmith pipeline" \
-          Key=Environment,Value="Prod"
-
-        echo "DB AMI created: $AMI_ID"
-        echo "db_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
+          AMI_NAME: snapshot-storefront-db-${{ needs.create-golden-image.outputs.base_ami_namepart }}
 
     - name: Delete web AMI if it exists
       run: | 
@@ -364,7 +343,30 @@ jobs:
         fi
 
       env:
-          AMI_NAME: ami-storefront-web-${{ needs.create-golden-image.outputs.base_ami_namepart }}
+          AMI_NAME: snapshot-storefront-web-${{ needs.create-golden-image.outputs.base_ami_namepart }}
+
+
+    - name: Create DB AMI
+      id: db_create_ami
+      run: |
+        ec2_id=${{ steps.db_ec2_launch.outputs.db_ec2_id }}
+        echo "Creating db AMI from instance: $ec2_id"
+        AMI_ID=$(aws ec2 create-image \
+          --instance-id "$ec2_id" \
+          --name "ami-storefront-db-${{ needs.create-golden-image.outputs.base_ami_namepart }}" \
+          --no-reboot \
+          --query 'ImageId' \
+          --output text)
+
+        aws ec2 create-tags \
+          --resources "$AMI_ID" \
+          --tags \
+          Key=Name,Value="snapshot-storefront-db-${{ needs.create-golden-image.outputs.base_ami_namepart }}" \
+          Key=CreatedBy,Value="Goldsmith pipeline" \
+          Key=Environment,Value="Prod"
+
+        echo "DB AMI created: $AMI_ID"
+        echo "db_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
 
     - name: Create web AMI
       id: web_create_ami
