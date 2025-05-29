@@ -1,6 +1,8 @@
 name: Create & deploy immutable demo infrastructure
 
 on:
+  push:
+    branches: [ "test" ]
   workflow_dispatch:
     inputs:
       golden_image_source:
@@ -109,98 +111,80 @@ jobs:
           --tags Key=Name,Value="$SNAPSHOT_NAME"
 
 
-
-
-
-
-# # 
-#     - name: Set base AMI name
-#       run: |
-#         AMI_ID="ami-08b259ec9e83d2890" 
-
-#         aws ec2 create-tags \
-#         --resources "$AMI_ID" \
-#         --tags \
-#           Key=Name,Value="$AMI_ID" \
-#           Key=CreatedBy,Value="GoldSmith pipeline" \
-#           Key=Environment,Value="Prod"
-
-
-
 # -------------------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------------------
-#   test-base-image:
-#     name: Test base image
-#     needs: create-golden-image
-#     runs-on: ubuntu-latest
-#     environment: Prod
-#     outputs:
-#       base_ec2_id: ${{ steps.base_ec2_launch.outputs.base_ec2_id }}
-#       base_public_ip: ${{ steps.base_get_ip.outputs.base_public_ip }}
+  test-base-image:
+    name: Test base image
+    needs: create-golden-image
+    runs-on: ubuntu-latest
+    environment: Prod
+    outputs:
+      base_ec2_id: ${{ steps.base_ec2_launch.outputs.base_ec2_id }}
+      base_public_ip: ${{ steps.base_get_ip.outputs.base_public_ip }}
 
-#     steps:
-#     - name: Checkout
-#       uses: actions/checkout@v4
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
 
-#     - name: Configure AWS credentials
-#       uses: aws-actions/configure-aws-credentials@v2
-#       with:
-#         role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
-#         aws-region: ${{ vars.AWS_REGION }}
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+        aws-region: ${{ vars.AWS_REGION }}
 
-#     - name: Launch base EC2 instance from base AMI
-#       id: base_ec2_launch
-#       run: |
-#         NAME="ec2-base-zero-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}"
-#         INSTANCE_INFO=$(aws ec2 run-instances \
-#           --image-id "${{ needs.create-golden-image.outputs.base_ami_id }}" \
-#           --count 1 \
-#           --instance-type t2.micro \
-#           --key-name ${{ secrets.AWS_KEYNAME }} \
-#           --subnet-id ${{ secrets.AWS_SUBNET }} \
-#           --security-group-ids ${{ secrets.AWS_SECURITYGROUP }} \
-#           --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME},{Key=Role,Value=Base},{Key=CreatedBy,Value=Goldsmith pipeline}]" \
-#           --query 'Instances[0].[InstanceId]' \
-#           --output text)
-#         base_ec2_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
-#         echo "base_ec2_id=$base_ec2_id" >> $GITHUB_OUTPUT
+    - name: Launch base EC2 instance from base AMI
+      id: base_ec2_launch
+      run: |
+        NAME="ec2-base-zero-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}"
+        INSTANCE_INFO=$(aws ec2 run-instances \
+          --image-id "${{ needs.create-golden-image.outputs.base_ami_id }}" \
+          --count 1 \
+          --instance-type t2.micro \
+          --key-name ${{ secrets.AWS_KEYNAME }} \
+          --subnet-id ${{ secrets.AWS_SUBNET }} \
+          --security-group-ids ${{ secrets.AWS_SECURITYGROUP }} \
+          --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME},{Key=Role,Value=Base},{Key=CreatedBy,Value=Goldsmith pipeline}]" \
+          --query 'Instances[0].[InstanceId]' \
+          --output text)
+        base_ec2_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
+        echo "base_ec2_id=$base_ec2_id" >> $GITHUB_OUTPUT
 
-#     - name: Retrieve base instance public ip address
-#       id: base_get_ip
-#       run: |
-#         # Added wait for instance to be running to ensure IP is available.
-#         aws ec2 wait instance-running --instance-ids "${{ steps.base_ec2_launch.outputs.base_ec2_id }}"
-#         base_public_ip=$(aws ec2 describe-instances \
-#           --instance-ids "${{ steps.base_ec2_launch.outputs.base_ec2_id }}" \
-#           --query 'Reservations[0].Instances[0].PublicIpAddress' \
-#           --output text)
-#         echo "base_public_ip=$base_public_ip" >> $GITHUB_OUTPUT
+    - name: Retrieve base instance public ip address
+      id: base_get_ip
+      run: |
+        # Added wait for instance to be running to ensure IP is available.
+        aws ec2 wait instance-running --instance-ids "${{ steps.base_ec2_launch.outputs.base_ec2_id }}"
+        base_public_ip=$(aws ec2 describe-instances \
+          --instance-ids "${{ steps.base_ec2_launch.outputs.base_ec2_id }}" \
+          --query 'Reservations[0].Instances[0].PublicIpAddress' \
+          --output text)
+        echo "base_public_ip=$base_public_ip" >> $GITHUB_OUTPUT
 
-#     # - name: Write EC2 private key locally
-#     #   run: echo "$AWS_EC2_PRIVATE_KEY" > ./ec2-key.pem && chmod 600 ./ec2-key.pem
-#     #   env:
-#     #     AWS_EC2_PRIVATE_KEY: ${{ secrets.AWS_EC2_PRIVATE_KEY }}
+    # - name: Write EC2 private key locally
+    #   run: echo "$AWS_EC2_PRIVATE_KEY" > ./ec2-key.pem && chmod 600 ./ec2-key.pem
+    #   env:
+    #     AWS_EC2_PRIVATE_KEY: ${{ secrets.AWS_EC2_PRIVATE_KEY }}
 
-#     # - name: Install InSpec
-#     #   run: |
-#     #     curl https://omnitruck.chef.io/install.sh | sudo bash -s -- -P inspec
+    # - name: Install InSpec
+    #   run: |
+    #     curl https://omnitruck.chef.io/install.sh | sudo bash -s -- -P inspec
 
-#     # - name: Find InSpec license
-#     #   run: |
-#     #     CHEF_LICENSE=accept inspec license status
+    # - name: Find InSpec license
+    #   run: |
+    #     CHEF_LICENSE=accept inspec license status
 
-#     # - name: Run InSpec test on EC2
-#     #   run: |
-#     #     CHEF_LICENSE=accept inspec exec inspec-profile/controls/image-base.rb \
-#     #       -t ssh://ubuntu@${{ steps.base_get_ip.outputs.base_public_ip }} \
-#     #       --key-files ./ec2-key.pem
+    # - name: Run InSpec test on EC2
+    #   run: |
+    #     CHEF_LICENSE=accept inspec exec inspec-profile/controls/image-base.rb \
+    #       -t ssh://ubuntu@${{ steps.base_get_ip.outputs.base_public_ip }} \
+    #       --key-files ./ec2-key.pem
 
-#     - name: Terminate base EC2 instance
-#       if: always() # Ensures termination even if previous steps fail
-#       run: |
-#         aws ec2 terminate-instances --instance-ids ${{ steps.base_ec2_launch.outputs.base_ec2_id }}
-#         # Added wait for instance to be terminated for cleaner state.
-#         aws ec2 wait instance-terminated --instance-ids ${{ steps.base_ec2_launch.outputs.base_ec2_id }}
+    - name: Terminate base EC2 instance
+      if: always() # Ensures termination even if previous steps fail
+      run: |
+        aws ec2 terminate-instances --instance-ids ${{ steps.base_ec2_launch.outputs.base_ec2_id }}
+        # Added wait for instance to be terminated for cleaner state.
+        aws ec2 wait instance-terminated --instance-ids ${{ steps.base_ec2_launch.outputs.base_ec2_id }}
 
 # # -------------------------------------------------------------------------------------------
 # # -------------------------------------------------------------------------------------------
