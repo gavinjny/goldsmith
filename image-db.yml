@@ -1,6 +1,8 @@
 - hosts: all
   vars:
-    version: "{{ version }}"
+    VERSION: "{{ VERSION }}"
+    MYSQL_STOREFRONT_USER: "{{ MYSQL_STOREFRONT_USER }}"
+    MYSQL_STOREFRONT_PASSWORD: "{{ MYSQL_STOREFRONT_PASSWORD }}"
   become: true
   tasks:
 # ----------------------------INSTALL DB SERVER----------------------------------
@@ -33,14 +35,21 @@
         state: present
         update_cache: yes
 
+    # - name: Create PrestaShop database
+    #   mysql_db:
+    #     name: "storefront"
+    #     state: present
     - name: Create PrestaShop database
-      mysql_db:
-        name: "storefront"
+      community.mysql.mysql_db:
+        name: storefront
         state: present
+        login_user: "{{ MYSQL_STOREFRONT_USER }}"
+        login_password: "{{ MYSQL_STOREFRONT_PASSWORD }}"
+        login_host: localhost
 
     - name: Download PrestaShop
       get_url:
-        url: "https://github.com/PrestaShop/PrestaShop/archive/refs/tags/{{ version }}.zip"
+        url: "https://github.com/PrestaShop/PrestaShop/archive/refs/tags/{{ VERSION }}.zip"
         dest: "/tmp/prestashop.zip"
 
     - name: Unzip PrestaShop
