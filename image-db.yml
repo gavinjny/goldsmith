@@ -30,6 +30,12 @@
         state: present
         update_cache: yes
 
+    - name: Ensure MySQL is started and enabled
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+
 # ----------------------------INSTALL SSM----------------------------------
     - name: Ensure snap is installed
       apt:
