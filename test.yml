@@ -1,77 +1,45 @@
 ---
 - name: Configure PrestaShop Database
   hosts: "{{ HOSTS | default('localhost') }}"
-  connection: "{{ CONNECTION_TYPE | default('local') }}" # Use 'ssh' if connecting to a remote host
-  become: yes # Required for tasks like installing packages and managing services
-  vars:
-    # These PRESTASHOP_VERSION variables are included as per your original request,
-    # but are not actively used in this database-only role.
-    PRESTASHOP_VERSION: "{{ VERSION | default('1.7.8.11') }}"
-    PSVERSION_VERSION: "{{ VERSION | default('1.7.8.11') }}" # Typically for download URL, not used here
+  connection: "{{ CONNECTION_TYPE | default('local') }}"
+  become: yes
 
-    # Mandatory variables you need to pass during execution
+  vars:
+    PRESTASHOP_VERSION: "{{ VERSION | default('1.7.8.11') }}"
     MYSQL_ROOT_PASSWORD: "{{ MYSQL_ROOT_PASSWORD }}"
     MYSQL_STOREFRONT_USER: "{{ MYSQL_STOREFRONT_USER }}"
     MYSQL_STOREFRONT_PASSWORD: "{{ MYSQL_STOREFRONT_PASSWORD }}"
-
-    # Optional: You can override these defaults
     MYSQL_STOREFRONT_DB: "{{ MYSQL_STOREFRONT_DB_VAR | default('prestashop_db') }}"
-    DB_SERVER_PACKAGE: "mariadb-server" # Use "mysql-server" for Oracle MySQL
-    DB_SERVICE_NAME: "mariadb"         # Use "mysql" for Oracle MySQL
+    DB_SERVER_PACKAGE: "mariadb-server"
+    DB_SERVICE_NAME: "mariadb"
     DB_ROOT_USER: "root"
-    # Socket path can vary by OS/DB distribution
-    DB_LOGIN_SOCKET: "{{ '/var/run/mysqld/mysqld.sock' if ansible_os_family == 'Debian' else '/var/lib/mysql/mysql.sock' if ansible_os_family == 'RedHat' else omit }}"
-
+    DB_LOGIN_SOCKET: "/var/run/mysqld/mysqld.sock"
 
   pre_tasks:
-    - name: Update apt cache (for Debian/Ubuntu)
+    - name: Update apt cache
       ansible.builtin.apt:
         update_cache: yes
       when: ansible_os_family == "Debian"
-      register: apt_update
-      changed_when: apt_update.changed
 
-    - name: Install database server and Python MySQL client
-      ansible.builtin.package: # Using generic 'package' for broader OS compatibility
+    - name: Install DB server and Python MySQL client
+      ansible.builtin.package:
         name:
           - "{{ DB_SERVER_PACKAGE }}"
-          - python3-mysqldb # Ansible MySQL module dependency (Debian/Ubuntu)
-                           # For RHEL/CentOS, this might be 'python3-PyMySQL' or 'mysql-connector-python'
-                           # and often installed via pip or EPEL if not in base repos.
-                           # Adjust based on your target OS if not Debian/Ubuntu.
+          - python3-mysqldb
         state: present
 
-    - name: Ensure Database service is started and enabled
+    - name: Ensure DB service is running
       ansible.builtin.service:
         name: "{{ DB_SERVICE_NAME }}"
         state: started
         enabled: yes
 
-    # This task is a common way to initially set the root password.
-    # It might fail if the password is ALREADY set and you try to set it again without the current one.
-    # Or if the default auth method doesn't allow password auth for root initially (e.g. auth_socket on new Debian/Ubuntu MySQL)
-    - name: Set MySQL root password (if not already set securely)
-      ansible.builtin.command: "mysqladmin -u {{ DB_ROOT_USER }} password {{ MYSQL_ROOT_PASSWORD }}"
-      when: MYSQL_ROOT_PASSWORD is defined and MYSQL_ROOT_PASSWORD != ""
-      changed_when: true # Assume password change if command runs
-      # This command can be tricky depending on the initial state of MySQL/MariaDB.
-      # For fresh installs where root has no password, it works.
-      # If root uses socket authentication, this might fail.
-      # Consider using the mysql_user module with 'check_implicit_admin=yes' for more robust root password management if needed.
-      # Or ensure it's run only once using a `creates` condition on a file indicating completion.
-      ignore_errors: true # Be cautious with ignoring errors in production.
-
-    # - name: Create .my.cnf for root user to automate MySQL commands
-    #   # ansible.builtin.template:
-    #   #   src: templates/my.cnf.j2 # Assumes you have this template
-    #   #   dest: "/root/.my.cnf"
-    #   #   owner: root
-    #   #   group: root
-    #   #   mode: '0600'
-    #   vars:
-    #     db_user_template: "{{ DB_ROOT_USER }}"
-    #     db_password_template: "{{ MYSQL_ROOT_PASSWORD }}"
-    #   when: MYSQL_ROOT_PASSWORD is defined and MYSQL_ROOT_PASSWORD != ""
+    - name: Set MySQL root password (if needed)
+      ansible.builtin.command: >
+        mysqladmin -u {{ DB_ROOT_USER }} password {{ MYSQL_ROOT_PASSWORD }}
+      when: MYSQL_ROOT_PASSWORD | length > 0
+      changed_when: true
+      ignore_errors: true
 
   tasks:
     - name: Create PrestaShop database
@@ -79,25 +47,22 @@
         name: "{{ MYSQL_STOREFRONT_DB }}"
         state: present
         login_user: "{{ DB_ROOT_USER }}"
-        login_password: "{{ MYSQL_ROOT_PASSWORD if MYSQL_ROOT_PASSWORD is defined and MYSQL_ROOT_PASSWORD != '' else omit }}"
-        login_unix_socket: "{{ DB_LOGIN_SOCKET if (MYSQL_ROOT_PASSWORD is not defined or MYSQL_ROOT_PASSWORD == '') else omit }}"
-        # If login_password is provided, socket might not be needed or used by the module depending on MySQL config.
-        # If root password is not set yet or you rely on socket auth for root, login_unix_socket is crucial.
+        login_password: "{{ MYSQL_ROOT_PASSWORD | default(omit) }}"
+        login_unix_socket: "{{ DB_LOGIN_SOCKET if MYSQL_ROOT_PASSWORD is not defined else omit }}"
 
-    - name: Create PrestaShop database user
+    - name: Create PrestaShop DB user
       community.mysql.mysql_user:
         name: "{{ MYSQL_STOREFRONT_USER }}"
         password: "{{ MYSQL_STOREFRONT_PASSWORD }}"
-        priv: "{{ MYSQL_STOREFRONT_DB }}.*:ALL" # Grant all privileges on the specific database
+        priv: "{{ MYSQL_STOREFRONT_DB }}.*:ALL"
         state: present
-        host: 'localhost' # Recommended for security. Use '%' if PrestaShop runs on a different server than DB.
+        host: "localhost"
         login_user: "{{ DB_ROOT_USER }}"
-        login_password: "{{ MYSQL_ROOT_PASSWORD if MYSQL_ROOT_PASSWORD is defined and MYSQL_ROOT_PASSWORD != '' else omit }}"
-        login_unix_socket: "{{ DB_LOGIN_SOCKET if (MYSQL_ROOT_PASSWORD is not defined or MYSQL_ROOT_PASSWORD == '') else omit }}"
+        login_password: "{{ MYSQL_ROOT_PASSWORD | default(omit) }}"
+        login_unix_socket: "{{ DB_LOGIN_SOCKET if MYSQL_ROOT_PASSWORD is not defined else omit }}"
 
   handlers:
-    # No web server or PrestaShop file handlers needed for a DB-only role
-    - name: Example Handler - Restart DB (if ever needed by a task)
+    - name: Restart DB service
       ansible.builtin.service:
         name: "{{ DB_SERVICE_NAME }}"
         state: restarted
