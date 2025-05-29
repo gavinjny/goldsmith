@@ -4,11 +4,52 @@
   become: true
   tasks:
 # ----------------------------INSTALL WEB SERVER AND DEPENDENCIES----------------------------------
-    - name: Ensure required packages are installed
+    - name: Update apt cache
       apt:
-        name: [apache2, unzip, php, php-mysql, libapache2-mod-php, wget]
-        state: present
         update_cache: yes
+
+    - name: Install Apache2
+      apt:
+        name: apache2
+        state: present
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+
+    - name: Install Unzip
+      apt:
+        name: unzip
+        state: present
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+
+    - name: Install PHP
+      apt:
+        name: php
+        state: present
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+
+    - name: Install PHP MySQL module
+      apt:
+        name: php-mysql
+        state: present
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+
+    - name: Install Apache PHP module
+      apt:
+        name: libapache2-mod-php
+        state: present
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+
+    - name: Install wget
+      apt:
+        name: wget
+        state: present
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+
 # ----------------------------INSTALL SSM----------------------------------
     - name: Ensure snap is installed
       apt:

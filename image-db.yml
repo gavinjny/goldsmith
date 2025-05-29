@@ -1,4 +1,4 @@
-- hosts: "%"
+- hosts: "localhost"
   vars:
     PSVERSION: "{{ VERSION }}"
     MYSQL_STOREFRONT_USER: "{{ MYSQL_STOREFRONT_USER }}"

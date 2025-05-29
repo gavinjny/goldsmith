@@ -132,8 +132,10 @@ jobs:
           --output text)
         echo "base_public_ip=$base_public_ip" >> $GITHUB_OUTPUT
 
-    # - name: Write EC2 private key
-    #   run: echo "${{ secrets.AWS_EC2_PRIVATE_KEY }}" > ./ec2-key.pem && chmod 600 ./ec2-key.pem
+    # - name: Write EC2 private key locally
+    #   run: echo "$AWS_EC2_PRIVATE_KEY" > ./ec2-key.pem && chmod 600 ./ec2-key.pem
+    #   env:
+    #     AWS_EC2_PRIVATE_KEY: ${{ secrets.AWS_EC2_PRIVATE_KEY }}
 
     # - name: Install InSpec
     #   run: |
@@ -247,14 +249,10 @@ jobs:
         sudo apt update
         sudo apt install -y ansible
 
-    # - name: Wait for EC2s to be ready
-    #   run: |
-    #     # It's better to use an explicit wait for SSH rather than a fixed sleep time.
-    #     echo "Sleeping for initial setup... (This sleep is still here per request, but consider SSH waits)"
-    #     sleep 180
-
     - name: Write EC2 private key locally
-      run: echo "${{ secrets.AWS_EC2_PRIVATE_KEY }}" > ./ec2-key.pem && chmod 600 ./ec2-key.pem
+      run: echo "$AWS_EC2_PRIVATE_KEY" > ./ec2-key.pem && chmod 600 ./ec2-key.pem
+      env:
+        AWS_EC2_PRIVATE_KEY: ${{ secrets.AWS_EC2_PRIVATE_KEY }}
 
     - name: Check for DB EC2 SSH is ready
       run: |
