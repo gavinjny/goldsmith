@@ -8,6 +8,11 @@ permissions:
   id-token: write
   contents: read
 
+# Options:
+# Crate new base
+# Use existing base
+# Start over
+
 # env:
   # VERSION: "1.7.8.11" # 1.7.8.11/8.2.1 
 
@@ -60,7 +65,7 @@ jobs:
           packer build -var "aws_region=${{ vars.AWS_REGION }}" -var "version=$version" -machine-readable image-base.pkr.hcl | tee packer_output.log
           echo "Extracting AMI ID from output..."
           AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
-          # echo "base_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
+          echo "base_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
 
     - name: Get base AMI name
       id: get_base_ami_name
