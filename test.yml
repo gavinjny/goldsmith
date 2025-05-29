@@ -1,98 +1,89 @@
 ---
-- name: Configure PrestaShop Database
-  hosts: "{{ HOSTS | default('localhost') }}"
-  connection: "{{ CONNECTION_TYPE | default('local') }}"
+- name: Install osCommerce and setup database
+  hosts: all
   become: yes
 
   vars:
-    PRESTASHOP_VERSION: "{{ VERSION | default('1.7.8.11') }}"
-    MYSQL_ROOT_PASSWORD: "{{ MYSQL_ROOT_PASSWORD }}"
-    MYSQL_STOREFRONT_USER: "{{ MYSQL_STOREFRONT_USER }}"
-    MYSQL_STOREFRONT_PASSWORD: "{{ MYSQL_STOREFRONT_PASSWORD }}"
-    MYSQL_STOREFRONT_DB: "{{ MYSQL_STOREFRONT_DB_VAR | default('prestashop_db') }}"
-    DB_SERVER_PACKAGE: "mariadb-server"
-    DB_SERVICE_NAME: "mariadb"
-    DB_ROOT_USER: "root"
+    OSCOMMERCE_VERSION: "oscommerce-4.13.1"
+    OSCOMMERCE_ZIP: "{{ OSCOMMERCE_VERSION }}.zip"
+    OSCOMMERCE_URL: "https://github.com/osCommerce/oscommerce/releases/download/v4.13.1/{{ OSCOMMERCE_ZIP }}"
+    OSCOMMERCE_WEBROOT: "/var/www/html/oscommerce"
+
+    MYSQL_ROOT_PASSWORD: "rootpass"
+    OSCOMMERCE_DB_NAME: "oscommerce_db"
+    OSCOMMERCE_DB_USER: "oscuser"
+    OSCOMMERCE_DB_PASSWORD: "oscpass"
     DB_LOGIN_SOCKET: "/var/run/mysqld/mysqld.sock"
-    PRESTASHOP_ZIP: "prestashop_{{ PRESTASHOP_VERSION }}.zip"
-    PRESTASHOP_URL: "https://github.com/PrestaShop/PrestaShop/releases/download/{{ PRESTASHOP_VERSION }}/{{ PRESTASHOP_ZIP }}"
-    PRESTASHOP_DEST: "/var/www/storefront"
-
-  pre_tasks:
-    - name: Update apt cache
-      apt:
-        update_cache: yes
-      when: ansible_os_family == "Debian"
-
-    - name: Install required packages
-      package:
-        name:
-          - "{{ DB_SERVER_PACKAGE }}"
-          - python3-mysqldb
-          - unzip
-          - wget
-        state: present
-
-    - name: Ensure DB service is running
-      service:
-        name: "{{ DB_SERVICE_NAME }}"
-        state: started
-        enabled: yes
-
-    - name: Set MySQL root password (if needed)
-      command: >
-        mysqladmin -u {{ DB_ROOT_USER }} password {{ MYSQL_ROOT_PASSWORD }}
-      when: MYSQL_ROOT_PASSWORD | length > 0
-      changed_when: true
-      ignore_errors: true
 
   tasks:
-    - name: Create PrestaShop database
-      community.mysql.mysql_db:
-        name: "{{ MYSQL_STOREFRONT_DB }}"
-        state: present
-        login_user: "{{ DB_ROOT_USER }}"
-        login_password: "{{ MYSQL_ROOT_PASSWORD | default(omit) }}"
-        login_unix_socket: "{{ DB_LOGIN_SOCKET if MYSQL_ROOT_PASSWORD is not defined else omit }}"
+  - name: Install required packages
+    apt:
+      name:
+        - apache2
+        - php
+        - php-mysql
+        - unzip
+        - mariadb-server
+        - python3-pymysql
+      state: present
+      update_cache: yes
 
-    - name: Create PrestaShop DB user
-      community.mysql.mysql_user:
-        name: "{{ MYSQL_STOREFRONT_USER }}"
-        password: "{{ MYSQL_STOREFRONT_PASSWORD }}"
-        priv: "{{ MYSQL_STOREFRONT_DB }}.*:ALL"
-        state: present
-        host: "localhost"
-        login_user: "{{ DB_ROOT_USER }}"
-        login_password: "{{ MYSQL_ROOT_PASSWORD | default(omit) }}"
-        login_unix_socket: "{{ DB_LOGIN_SOCKET if MYSQL_ROOT_PASSWORD is not defined else omit }}"
+  - name: Ensure Apache and DB services are running
+    service:
+      name: "{{ item }}"
+      state: started
+      enabled: true
+    loop:
+      - apache2
+      - mariadb
 
-    - name: Create destination directory
-      file:
-        path: "{{ PRESTASHOP_DEST }}"
-        state: directory
-        mode: '0755'
+  - name: Set MySQL root password
+    command: >
+      mysqladmin -u root password {{ MYSQL_ROOT_PASSWORD }}
+    changed_when: true
+    ignore_errors: true
 
-    - name: Download PrestaShop release {{ PRESTASHOP_VERSION }}
-      get_url:
-        url: "{{ PRESTASHOP_URL }}"
-        dest: "/tmp/{{ PRESTASHOP_ZIP }}"
-        mode: '0644'
+  - name: Create osCommerce database
+    community.mysql.mysql_db:
+      name: "{{ OSCOMMERCE_DB_NAME }}"
+      state: present
+      login_user: root
+      login_password: "{{ MYSQL_ROOT_PASSWORD }}"
 
-    - name: Unzip PrestaShop
-      unarchive:
-        src: "/tmp/{{ PRESTASHOP_ZIP }}"
-        dest: "{{ PRESTASHOP_DEST }}"
-        remote_src: yes
+  - name: Create osCommerce DB user
+    community.mysql.mysql_user:
+      name: "{{ OSCOMMERCE_DB_USER }}"
+      password: "{{ OSCOMMERCE_DB_PASSWORD }}"
+      priv: "{{ OSCOMMERCE_DB_NAME }}.*:ALL"
+      state: present
+      host: "localhost"
+      login_user: root
+      login_password: "{{ MYSQL_ROOT_PASSWORD }}"
 
-    - name: Set permissions on storefront directory
-      file:
-        path: "{{ PRESTASHOP_DEST }}"
-        owner: www-data
-        group: www-data
-        recurse: yes
+  - name: Create web root directory
+    file:
+      path: "{{ OSCOMMERCE_WEBROOT }}"
+      state: directory
+      owner: www-data
+      group: www-data
+      mode: '0755'
 
-  handlers:
-    - name: Restart DB service
-      service:
-        name: "{{ DB_SERVICE_NAME }}"
-        state: restarted
+  - name: Download osCommerce
+    get_url:
+      url: "{{ OSCOMMERCE_URL }}"
+      dest: "/tmp/{{ OSCOMMERCE_ZIP }}"
+      mode: '0644'
+
+  - name: Extract osCommerce
+    unarchive:
+      src: "/tmp/{{ OSCOMMERCE_ZIP }}"
+      dest: "{{ OSCOMMERCE_WEBROOT }}"
+      remote_src: yes
+      extra_opts: [--strip-components=1]
+
+  - name: Set permissions
+    file:
+      path: "{{ OSCOMMERCE_WEBROOT }}"
+      owner: www-data
+      group: www-data
+      recurse: yes

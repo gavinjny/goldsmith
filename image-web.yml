@@ -1,114 +1,45 @@
-- hosts: all
-  vars:
-    version: "{{ version }}"
-  become: true
-  tasks:
+name: Deploy resume site with Apache
+hosts: all
+become: yes
+vars:
+  resume_local_path: ./resume/index.html
+  resume_remote_path: /var/www/html/index.html
+
+tasks:
 # ----------------------------INSTALL WEB SERVER AND DEPENDENCIES----------------------------------
-    - name: Update apt cache
-      apt:
-        update_cache: yes
+  - name: Ensure Apache is installed
+    apt:
+      name: apache2
+      state: present
+      update_cache: yes
 
-    - name: Install Apache2
-      apt:
-        name: apache2
-        state: present
-      environment:
-        DEBIAN_FRONTEND: noninteractive
-
-    - name: Install Unzip
-      apt:
-        name: unzip
-        state: present
-      environment:
-        DEBIAN_FRONTEND: noninteractive
-
-    - name: Install PHP
-      apt:
-        name: php
-        state: present
-      environment:
-        DEBIAN_FRONTEND: noninteractive
-
-    - name: Install PHP MySQL module
-      apt:
-        name: php-mysql
-        state: present
-      environment:
-        DEBIAN_FRONTEND: noninteractive
-
-    - name: Install Apache PHP module
-      apt:
-        name: libapache2-mod-php
-        state: present
-      environment:
-        DEBIAN_FRONTEND: noninteractive
-
-    - name: Install wget
-      apt:
-        name: wget
-        state: present
-      environment:
-        DEBIAN_FRONTEND: noninteractive
+  - name: Ensure Apache is running and enabled
+    service:
+      name: apache2
+      state: started
+      enabled: true
 
 # ----------------------------INSTALL SSM----------------------------------
-    - name: Ensure snap is installed
-      apt:
-        name: snapd
-        state: present
-        update_cache: yes
+  - name: Ensure snap is installed
+    apt:
+      name: snapd
+      state: present
+      update_cache: yes
 
-    - name: Ensure SSM Agent is installed via snap
-      command: snap install amazon-ssm-agent --classic
-      register: ssm_result
-      changed_when: "'installed' in ssm_result.stdout or 'updated' in ssm_result.stdout"
-      failed_when: false
+  - name: Ensure SSM Agent is installed via snap
+    command: snap install amazon-ssm-agent --classic
+    register: ssm_result
+    changed_when: "'installed' in ssm_result.stdout or 'updated' in ssm_result.stdout"
+    failed_when: false
 
-    - name: Start amazon-ssm-agent via snap
-      command: snap start amazon-ssm-agent
+  - name: Start amazon-ssm-agent via snap
+    command: snap start amazon-ssm-agent
 
-# ----------------------------INSTALL PRESTASHOP WEB----------------------------------
-    - name: Create website root directory
-      file:
-        path: "/var/www/storefront"
-        state: directory
-        owner: www-data
-        group: www-data
-        mode: '0755'
-
-    - name: Download PrestaShop version {{ version }}
-      get_url:
-        url: "https://download.prestashop.com/download/releases/prestashop_{{ version }}.zip"
-        dest: "/tmp/prestashop.zip"
-        mode: '0644'
-
-    - name: Unpack PrestaShop
-      unarchive:
-        src: "/tmp/prestashop.zip"
-        dest: "/var/www/storefront"
-        remote_src: yes
-
-    - name: Set permissions
-      file:
-        path: "/var/www/storefront"
-        owner: www-data
-        group: www-data
-        recurse: yes
-
-    - name: Configure Apache VirtualHost
-      copy:
-        dest: "/etc/apache2/sites-available/storefront.conf"
-        content: |
-          <VirtualHost *:80>
-              ServerName storefront
-              DocumentRoot /var/www/storefront
-              <Directory /var/www/storefront>
-                  AllowOverride All
-                  Require all granted
-              </Directory>
-          </VirtualHost>
-
-    - name: Enable site and rewrite module
-      shell: |
-        a2ensite storefront.conf
-        a2enmod rewrite
-        systemctl reload apache2
+# ----------------------------INSTALL WEB----------------------------------
+  - name: Copy resume HTML to web root
+    copy:
+      src: "{{ resume_local_path }}"
+      dest: "{{ resume_remote_path }}"
+      owner: www-data
+      group: www-data
+      mode: '0644'

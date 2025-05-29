@@ -1,15 +1,16 @@
 name: Test Pipeline
 
 on:
-  push:
-    branches: [ "test" ]
+  workflow_call:
+  # push:
+  #   branches: [ "test" ]
 
 permissions:
   id-token: write
   contents: read
 
-env:
-  VERSION: "8.2.1" # 1.7.8.11/8.2.1 
+# env:
+#   VERSION: "8.2.1" # 1.7.8.11/8.2.1 
 
 jobs:
   create-role-image:
