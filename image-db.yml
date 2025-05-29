@@ -51,7 +51,7 @@
 
     - name: Download PrestaShop
       get_url:
-        url: "https://github.com/PrestaShop/PrestaShop/archive/refs/tags/{{ PSVERSION }}.zip"
+        url: "https://github.com/PrestaShop/PrestaShop/releases/download/{{ PSVERSION }}/prestashop_{{ PSVERSION }}.zip"
         dest: "/tmp/prestashop.zip"
 
     - name: Unzip PrestaShop
