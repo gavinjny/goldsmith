@@ -29,6 +29,12 @@
       command: snap start amazon-ssm-agent
 
 # ----------------------------INSTALL PRESTASHOP DB----------------------------------
+    - name: Install Python MySQL client (PyMySQL)
+      apt:
+        name: python3-pymysql
+        state: present
+        update_cache: yes
+
     - name: Install Python MySQL client
       apt:
         name: python3-pymysql
