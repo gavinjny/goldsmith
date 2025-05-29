@@ -70,7 +70,7 @@ jobs:
 # ${{ steps.base_build.outputs.base_ami_id }}
     - name: Set base AMI name
       run: |
-        AMI_ID= "ami-demo-base-v20250529.14" 
+        AMI_ID="ami-demo-base-v20250529.14" 
 
         aws ec2 create-tags \
         --resources "$AMI_ID" \
