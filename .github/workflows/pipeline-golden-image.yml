@@ -1,8 +1,6 @@
 name: Create & deploy immutable demo infrastructure
 
 on:
-  push:
-    branches: [ "test" ]
   workflow_dispatch:
     inputs:
       golden_image_source:
