@@ -10,7 +10,7 @@ on:
         type: choice
         options:
           - last good base image
-          - updated base image
+          - new base image
 
 permissions:
   id-token: write
@@ -37,21 +37,21 @@ jobs:
 
 # -- BUILD NEW AMI IF SELECTED --
     - name: Install Packer
-      if: ${{ github.event.inputs.golden_image_source == 'updated base image' }}
+      if: ${{ github.event.inputs.golden_image_source == 'new base image' }}
       uses: hashicorp/setup-packer@v2
       with:
         version: 'latest'
 
     - name: Initialize Packer
-      if: ${{ github.event.inputs.golden_image_source == 'updated base image' }}
+      if: ${{ github.event.inputs.golden_image_source == 'new base image' }}
       run: packer init image-base.pkr.hcl
 
     - name: Validate Packer template
-      if: ${{ github.event.inputs.golden_image_source == 'updated base image' }}
+      if: ${{ github.event.inputs.golden_image_source == 'new base image' }}
       run: packer validate -var "aws_region=${{ vars.AWS_REGION }}" -var "version=" image-base.pkr.hcl
 
     - name: Build base image
-      if: ${{ github.event.inputs.golden_image_source == 'updated base image' }}
+      if: ${{ github.event.inputs.golden_image_source == 'new base image' }}
       id: base_build
       run: |
         RUN_NUM=${GITHUB_RUN_NUMBER}
@@ -93,7 +93,7 @@ jobs:
 
 # -- TAG SNAPSHOT ONLY IF BUILDING NEW IMAGE --
     - name: Set snapshot name
-      if: ${{ github.event.inputs.golden_image_source == 'updated base image' }}
+      if: ${{ github.event.inputs.golden_image_source == 'new base image' }}
       run: |
         AMI_ID="${{ steps.base_build.outputs.base_ami_id }}"
         SNAPSHOT_NAME="snapshot-demo-base-${{ steps.split_ami_name.outputs.base_ami_name_part }}"
