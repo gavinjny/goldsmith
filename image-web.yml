@@ -1,0 +1,45 @@
+- hosts: "localhost"
+  name: Deploy resume site with Apache
+  vars:
+    resume_local_path: ./resume/index.html
+    resume_remote_path: /var/www/html/index.html
+  become: true
+
+  tasks:
+  # ----------------------------INSTALL WEB SERVER AND DEPENDENCIES----------------------------------
+    - name: Ensure Apache is installed
+      apt:
+        name: apache2
+        state: present
+        update_cache: yes
+
+    - name: Ensure Apache is running and enabled
+      service:
+        name: apache2
+        state: started
+        enabled: true
+
+  # ----------------------------INSTALL SSM----------------------------------
+    - name: Ensure snap is installed
+      apt:
+        name: snapd
+        state: present
+        update_cache: yes
+
+    - name: Ensure SSM Agent is installed via snap
+      command: snap install amazon-ssm-agent --classic
+      register: ssm_result
+      changed_when: "'installed' in ssm_result.stdout or 'updated' in ssm_result.stdout"
+      failed_when: false
+
+    - name: Start amazon-ssm-agent via snap
+      command: snap start amazon-ssm-agent
+
+  # ----------------------------INSTALL WEB----------------------------------
+    - name: Copy resume HTML to web root
+      copy:
+        src: "{{ resume_local_path }}"
+        dest: "{{ resume_remote_path }}"
+        owner: www-data
+        group: www-data
+        mode: '0644'

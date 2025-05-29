@@ -1,0 +1,549 @@
+name: Create & deploy immutable demo infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      golden_image_source:
+        description: 'Build new role image based on'
+        required: true
+        default: 'last good base image'
+        type: choice
+        options:
+          - last good base image
+          - updated base image
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  create-golden-image:
+    name: Create base image
+    runs-on: ubuntu-latest
+    environment: Prod
+    outputs:
+      base_ami_id: ${{ steps.base_build.outputs.base_ami_id || steps.use_existing.outputs.base_ami_id }}
+      base_ami_name_part: ${{ steps.split_ami_name.outputs.base_ami_name_part }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+        aws-region: ${{ vars.AWS_REGION }}
+
+# -- BUILD NEW AMI IF SELECTED --
+    - name: Install Packer
+      if: ${{ github.event.inputs.golden_image_source == 'updated base image' }}
+      uses: hashicorp/setup-packer@v2
+      with:
+        version: 'latest'
+
+    - name: Initialize Packer
+      if: ${{ github.event.inputs.golden_image_source == 'updated base image' }}
+      run: packer init image-base.pkr.hcl
+
+    - name: Validate Packer template
+      if: ${{ github.event.inputs.golden_image_source == 'updated base image' }}
+      run: packer validate -var "aws_region=${{ vars.AWS_REGION }}" -var "version=" image-base.pkr.hcl
+
+    - name: Build base image
+      if: ${{ github.event.inputs.golden_image_source == 'updated base image' }}
+      id: base_build
+      run: |
+        RUN_NUM=${GITHUB_RUN_NUMBER}
+        TIMESTAMP=$(date -u +%Y%m%d)
+        version="v${TIMESTAMP}.${RUN_NUM}"
+        echo "Running Packer build to create version $version ..."
+        packer build -var "aws_region=${{ vars.AWS_REGION }}" -var "version=$version" -machine-readable image-base.pkr.hcl | tee packer_output.log
+        echo "Extracting AMI ID from output..."
+        AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
+        echo "base_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
+
+# -- USE EXISTING LAST GOOD IMAGE IF SELECTED --
+    - name: Use latest existing base image
+      if: ${{ github.event.inputs.golden_image_source == 'last good base image' }}
+      id: use_existing
+      run: |
+        IMAGE_PREFIX="ami-demo-base-"
+        AMI_INFO=$(aws ec2 describe-images \
+          --owners self \
+          --filters "Name=name,Values=${IMAGE_PREFIX}*" \
+          --query 'Images[*].{ID:ImageId,Name:Name,Date:CreationDate}' \
+          --output json | jq -r 'sort_by(.Date) | reverse | .[0]')
+        AMI_ID=$(echo "$AMI_INFO" | jq -r '.ID')
+        echo "Using latest base AMI: $AMI_ID"
+        echo "base_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
+
+# -- EXTRACT AMI NAME PART FOR BOTH CASES --
+    - name: Extract build id from AMI name
+      id: split_ami_name
+      run: |
+        AMI_ID="${{ steps.base_build.outputs.base_ami_id || steps.use_existing.outputs.base_ami_id }}"
+        AMI_NAME=$(aws ec2 describe-images \
+          --image-ids "$AMI_ID" \
+          --query 'Images[0].Name' \
+          --output text)
+        base_ami_name="$AMI_NAME"
+        base_ami_name_part=$(echo "$base_ami_name" | awk -F '-' '{print $NF}')
+        echo "base_ami_name_part=$base_ami_name_part" >> $GITHUB_OUTPUT
+
+# -- TAG SNAPSHOT ONLY IF BUILDING NEW IMAGE --
+    - name: Set snapshot name
+      if: ${{ github.event.inputs.golden_image_source == 'updated base image' }}
+      run: |
+        AMI_ID="${{ steps.base_build.outputs.base_ami_id }}"
+        SNAPSHOT_NAME="snapshot-demo-base-${{ steps.split_ami_name.outputs.base_ami_name_part }}"
+
+        SNAPSHOT_ID=$(aws ec2 describe-images \
+          --image-ids "$AMI_ID" \
+          --query "Images[0].BlockDeviceMappings[0].Ebs.SnapshotId" \
+          --output text)
+
+        echo "Tagging snapshot: $SNAPSHOT_ID"
+        aws ec2 create-tags \
+          --resources "$SNAPSHOT_ID" \
+          --tags Key=Name,Value="$SNAPSHOT_NAME"
+
+
+
+
+
+
+# # 
+#     - name: Set base AMI name
+#       run: |
+#         AMI_ID="ami-08b259ec9e83d2890" 
+
+#         aws ec2 create-tags \
+#         --resources "$AMI_ID" \
+#         --tags \
+#           Key=Name,Value="$AMI_ID" \
+#           Key=CreatedBy,Value="GoldSmith pipeline" \
+#           Key=Environment,Value="Prod"
+
+
+
+# -------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
+#   test-base-image:
+#     name: Test base image
+#     needs: create-golden-image
+#     runs-on: ubuntu-latest
+#     environment: Prod
+#     outputs:
+#       base_ec2_id: ${{ steps.base_ec2_launch.outputs.base_ec2_id }}
+#       base_public_ip: ${{ steps.base_get_ip.outputs.base_public_ip }}
+
+#     steps:
+#     - name: Checkout
+#       uses: actions/checkout@v4
+
+#     - name: Configure AWS credentials
+#       uses: aws-actions/configure-aws-credentials@v2
+#       with:
+#         role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+#         aws-region: ${{ vars.AWS_REGION }}
+
+#     - name: Launch base EC2 instance from base AMI
+#       id: base_ec2_launch
+#       run: |
+#         NAME="ec2-base-zero-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}"
+#         INSTANCE_INFO=$(aws ec2 run-instances \
+#           --image-id "${{ needs.create-golden-image.outputs.base_ami_id }}" \
+#           --count 1 \
+#           --instance-type t2.micro \
+#           --key-name ${{ secrets.AWS_KEYNAME }} \
+#           --subnet-id ${{ secrets.AWS_SUBNET }} \
+#           --security-group-ids ${{ secrets.AWS_SECURITYGROUP }} \
+#           --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME},{Key=Role,Value=Base},{Key=CreatedBy,Value=Goldsmith pipeline}]" \
+#           --query 'Instances[0].[InstanceId]' \
+#           --output text)
+#         base_ec2_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
+#         echo "base_ec2_id=$base_ec2_id" >> $GITHUB_OUTPUT
+
+#     - name: Retrieve base instance public ip address
+#       id: base_get_ip
+#       run: |
+#         # Added wait for instance to be running to ensure IP is available.
+#         aws ec2 wait instance-running --instance-ids "${{ steps.base_ec2_launch.outputs.base_ec2_id }}"
+#         base_public_ip=$(aws ec2 describe-instances \
+#           --instance-ids "${{ steps.base_ec2_launch.outputs.base_ec2_id }}" \
+#           --query 'Reservations[0].Instances[0].PublicIpAddress' \
+#           --output text)
+#         echo "base_public_ip=$base_public_ip" >> $GITHUB_OUTPUT
+
+#     # - name: Write EC2 private key locally
+#     #   run: echo "$AWS_EC2_PRIVATE_KEY" > ./ec2-key.pem && chmod 600 ./ec2-key.pem
+#     #   env:
+#     #     AWS_EC2_PRIVATE_KEY: ${{ secrets.AWS_EC2_PRIVATE_KEY }}
+
+#     # - name: Install InSpec
+#     #   run: |
+#     #     curl https://omnitruck.chef.io/install.sh | sudo bash -s -- -P inspec
+
+#     # - name: Find InSpec license
+#     #   run: |
+#     #     CHEF_LICENSE=accept inspec license status
+
+#     # - name: Run InSpec test on EC2
+#     #   run: |
+#     #     CHEF_LICENSE=accept inspec exec inspec-profile/controls/image-base.rb \
+#     #       -t ssh://ubuntu@${{ steps.base_get_ip.outputs.base_public_ip }} \
+#     #       --key-files ./ec2-key.pem
+
+#     - name: Terminate base EC2 instance
+#       if: always() # Ensures termination even if previous steps fail
+#       run: |
+#         aws ec2 terminate-instances --instance-ids ${{ steps.base_ec2_launch.outputs.base_ec2_id }}
+#         # Added wait for instance to be terminated for cleaner state.
+#         aws ec2 wait instance-terminated --instance-ids ${{ steps.base_ec2_launch.outputs.base_ec2_id }}
+
+# # -------------------------------------------------------------------------------------------
+# # -------------------------------------------------------------------------------------------
+#   create-role-image:
+#     name: Create and customize role images
+#     needs: [create-golden-image,test-base-image]
+#     runs-on: ubuntu-latest
+#     environment: Prod
+#     outputs:
+#       web_ec2_id: ${{ steps.web_ec2_launch.outputs.web_ec2_id }}
+#       web_public_ip: ${{ steps.web_get_ip.outputs.web_public_ip }}
+#       # db_ec2_id: ${{ steps.db_ec2_launch.outputs.db_ec2_id }}
+#       # db_public_ip: ${{ steps.db_get_ip.outputs.db_public_ip }}
+#       web_ami_id: ${{ steps.web_create_ami.outputs.web_ami_id }}
+#       # db_ami_id: ${{ steps.db_create_ami.outputs.db_ami_id }}
+
+#     steps:
+#     - name: Checkout
+#       uses: actions/checkout@v4
+
+#     - name: Configure AWS credentials
+#       uses: aws-actions/configure-aws-credentials@v2
+#       with:
+#         role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+#         aws-region: ${{ vars.AWS_REGION }}
+
+#     # - name: Launch DB EC2 instance from AMI
+#     #   id: db_ec2_launch
+#     #   run: |
+#     #     NAME="ec2-db-zero-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}"
+#     #     INSTANCE_INFO=$(aws ec2 run-instances \
+#     #       --image-id "${{ needs.create-golden-image.outputs.base_ami_id }}" \
+#     #       --count 1 \
+#     #       --instance-type t2.micro \
+#     #       --key-name ${{ secrets.AWS_KEYNAME }} \
+#     #       --subnet-id ${{ secrets.AWS_SUBNET }} \
+#     #       --security-group-ids ${{ secrets.AWS_SECURITYGROUP }} \
+#     #       --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME},{Key=Role,Value=DB},{Key=CreatedBy,Value=Goldsmith pipeline}]" \
+#     #       --query 'Instances[0].[InstanceId]' \
+#     #       --output text)
+#     #     db_ec2_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
+#     #     echo "db_ec2_id=$db_ec2_id" >> $GITHUB_OUTPUT
+
+#     # - name: Retrieve DB instance public ip address
+#     #   id: db_get_ip
+#     #   run: |
+#     #     # Added wait for instance to be running.
+#     #     aws ec2 wait instance-running --instance-ids "${{ steps.db_ec2_launch.outputs.db_ec2_id }}"
+#     #     db_public_ip=$(aws ec2 describe-instances \
+#     #       --instance-ids "${{ steps.db_ec2_launch.outputs.db_ec2_id }}" \
+#     #       --query 'Reservations[0].Instances[0].PublicIpAddress' \
+#     #       --output text)
+#     #     echo "db_public_ip=$db_public_ip" >> $GITHUB_OUTPUT
+
+#     - name: Launch web EC2 instance from AMI
+#       id: web_ec2_launch
+#       run: |
+#         NAME="ec2-web-zero-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}"
+#         INSTANCE_INFO=$(aws ec2 run-instances \
+#           --image-id "${{ needs.create-golden-image.outputs.base_ami_id }}" \
+#           --count 1 \
+#           --instance-type t2.micro \
+#           --key-name ${{ secrets.AWS_KEYNAME }} \
+#           --subnet-id ${{ secrets.AWS_SUBNET }} \
+#           --security-group-ids ${{ secrets.AWS_SECURITYGROUP }} \
+#           --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME},{Key=Role,Value=Web},{Key=CreatedBy,Value=Goldsmith pipeline}]" \
+#           --query 'Instances[0].[InstanceId]' \
+#           --output text)
+#         web_ec2_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
+#         echo "web_ec2_id=$web_ec2_id" >> $GITHUB_OUTPUT
+
+#     - name: Retrieve web instance public ip address
+#       id: web_get_ip
+#       run: |
+#         # Added wait for instance to be running.
+#         aws ec2 wait instance-running --instance-ids "${{ steps.web_ec2_launch.outputs.web_ec2_id }}"
+#         web_public_ip=$(aws ec2 describe-instances \
+#           --instance-ids "${{ steps.web_ec2_launch.outputs.web_ec2_id }}" \
+#           --query 'Reservations[0].Instances[0].PublicIpAddress' \
+#           --output text)
+#         echo "web_public_ip=$web_public_ip" >> $GITHUB_OUTPUT
+
+#     - name: Display Public IPs
+#       run: |
+#         # echo "DB IP: ${{ steps.db_get_ip.outputs.db_public_ip }}"
+#         echo "Web IP: ${{ steps.web_get_ip.outputs.web_public_ip }}"
+
+#     - name: Install Ansible
+#       run: |
+#         sudo apt update
+#         sudo apt install -y ansible
+
+#     - name: Write EC2 private key locally
+#       run: echo "$AWS_EC2_PRIVATE_KEY" > ./ec2-key.pem && chmod 600 ./ec2-key.pem
+#       env:
+#         AWS_EC2_PRIVATE_KEY: ${{ secrets.AWS_EC2_PRIVATE_KEY }}
+
+#     # - name: Check for DB EC2 SSH is ready
+#     #   run: |
+#     #     for i in {1..30}; do
+#     #       if ssh -o StrictHostKeyChecking=no -i ./ec2-key.pem ubuntu@${{ steps.db_get_ip.outputs.db_public_ip }} exit 2>/dev/null; then
+#     #         echo "SSH is ready for DB"
+#     #         break
+#     #       fi
+#     #       echo "Waiting for SSH to DB... ($i)"
+#     #       sleep 5
+#     #     done
+
+#     - name: Check for web EC2 SSH is ready
+#       run: |
+#         for i in {1..30}; do
+#           if ssh -o StrictHostKeyChecking=no -i ./ec2-key.pem ubuntu@${{ steps.web_get_ip.outputs.web_public_ip }} exit 2>/dev/null; then
+#             echo "SSH is ready for Web"
+#             break
+#           fi
+#           echo "Waiting for SSH to Web... ($i)"
+#           sleep 5
+#         done
+
+#     # - name: Run DB customization
+#     #   run: |
+#     #     ansible-playbook -i "${{ steps.db_get_ip.outputs.db_public_ip }}," image-db.yml \
+#     #     -u ubuntu --private-key ec2-key.pem \
+#     #     --extra-vars "version=$VERSION" \
+#     #     --extra-vars "MYSQL_DEMO_USER=$MYSQL_DEMO_USER" \
+#     #     --extra-vars "MYSQL_DEMO_PASSWORD=$MYSQL_DEMO_PASSWORD" \
+#     #     --extra-vars "MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD"
+#     #   env:
+#     #     MYSQL_DEMO_USER: ${{ secrets.MYSQL_DEMO_USER }}
+#     #     MYSQL_DEMO_PASSWORD: ${{ secrets.MYSQL_DEMO_PASSWORD }}
+#     #     MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+
+#     - name: Run web customization
+#       run: |
+#         ansible-playbook -i "${{ steps.web_get_ip.outputs.web_public_ip }}," image-web.yml \
+#         -u ubuntu --private-key ec2-key.pem \
+#         --extra-vars "version=$VERSION"
+
+#     # - name: Delete DB AMI if it exists
+#     #   run: | 
+#     #     echo "Looking up AMI with name: $AMI_NAME"
+#     #     AMI_ID=$(aws ec2 describe-images \
+#     #       --owners self \
+#     #       --filters "Name=name,Values=$AMI_NAME" \
+#     #       --query 'Images[0].ImageId' \
+#     #       --output text 2>/dev/null)
+
+#     #     if [ "$AMI_ID" != "None" ]; then
+#     #       echo "Found AMI: $AMI_ID — deregistering..."
+#     #       aws ec2 deregister-image --image-id "$AMI_ID"
+
+#     #       echo "Looking up associated snapshots..."
+#     #       SNAPSHOT_IDS=$(aws ec2 describe-images \
+#     #         --image-ids "$AMI_ID" \
+#     #         --query 'Images[0].BlockDeviceMappings[*].Ebs.SnapshotId' \
+#     #         --output text)
+
+#     #       for SNAPSHOT_ID in $SNAPSHOT_IDS; do
+#     #         echo "Deleting snapshot: $SNAPSHOT_ID"
+#     #         aws ec2 delete-snapshot --snapshot-id "$SNAPSHOT_ID"
+#     #       done
+#     #     else
+#     #       echo "No AMI found with name: $AMI_NAME"
+#     #     fi
+
+#     #   env:
+#     #       AMI_NAME: snapshot-demo-db-${{ needs.create-golden-image.outputs.base_ami_name_part }}
+
+#     # - name: Delete web AMI if it exists
+#     #   run: | 
+#     #     echo "Looking up AMI with name: $AMI_NAME"
+#     #     AMI_ID=$(aws ec2 describe-images \
+#     #       --owners self \
+#     #       --filters "Name=name,Values=$AMI_NAME" \
+#     #       --query 'Images[0].ImageId' \
+#     #       --output text 2>/dev/null)
+
+#     #     if [ "$AMI_ID" != "None" ]; then
+#     #       echo "Found AMI: $AMI_ID — deregistering..."
+#     #       aws ec2 deregister-image --image-id "$AMI_ID"
+
+#     #       echo "Looking up associated snapshots..."
+#     #       SNAPSHOT_IDS=$(aws ec2 describe-images \
+#     #         --image-ids "$AMI_ID" \
+#     #         --query 'Images[0].BlockDeviceMappings[*].Ebs.SnapshotId' \
+#     #         --output text)
+
+#     #       for SNAPSHOT_ID in $SNAPSHOT_IDS; do
+#     #         echo "Deleting snapshot: $SNAPSHOT_ID"
+#     #         aws ec2 delete-snapshot --snapshot-id "$SNAPSHOT_ID"
+#     #       done
+#     #     else
+#     #       echo "No AMI found with name: $AMI_NAME"
+#     #     fi
+
+#     #   env:
+#     #       AMI_NAME: snapshot-demo-web-${{ needs.create-golden-image.outputs.base_ami_name_part }}
+
+#     # - name: Create DB AMI
+#     #   id: db_create_ami
+#     #   run: |
+#     #     ec2_id=${{ steps.db_ec2_launch.outputs.db_ec2_id }}
+#     #     echo "Creating db AMI from instance: $ec2_id"
+#     #     AMI_ID=$(aws ec2 create-image \
+#     #       --instance-id "$ec2_id" \
+#     #       --name "ami-demo-db-${{ needs.create-golden-image.outputs.base_ami_name_part }}" \
+#     #       --no-reboot \
+#     #       --query 'ImageId' \
+#     #       --output text)
+
+#     #     aws ec2 create-tags \
+#     #       --resources "$AMI_ID" \
+#     #       --tags \
+#     #       Key=Name,Value="snapshot-demo-db-${{ needs.create-golden-image.outputs.base_ami_name_part }}" \
+#     #       Key=CreatedBy,Value="Goldsmith pipeline" \
+#     #       Key=Environment,Value="Prod"
+
+#     #     echo "DB AMI created: $AMI_ID"
+#     #     echo "db_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
+# # -------------------------------------------------------------------------------------------
+#     - name: Create web AMI
+#       id: web_create_ami
+#       run: |
+#         ec2_id=${{ steps.web_ec2_launch.outputs.web_ec2_id }}
+#         base_name_part=${{ needs.create-golden-image.outputs.base_ami_name_part }}
+
+#         echo "Creating AMI 'ami-demo-web-${base_name_part}' from instance: $ec2_id"
+#         AMI_ID=$(aws ec2 create-image \
+#           --instance-id "$ec2_id" \
+#           --name "ami-demo-web-${base_name_part}" \
+#           --no-reboot \
+#           --query 'ImageId' \
+#           --output text)
+
+#         echo "Tagging AMI snapshot..."
+#         # Wait for the snapshot to be created (can optionally add polling logic)
+#         sleep 10
+
+#         SNAPSHOT_ID=$(aws ec2 describe-images \
+#           --image-ids "$AMI_ID" \
+#           --query "Images[0].BlockDeviceMappings[0].Ebs.SnapshotId" \
+#           --output text)
+
+#         aws ec2 create-tags \
+#           --resources "$SNAPSHOT_ID" \
+#           --tags Key=Name,Value="snapshot-demo-web-${base_name_part}"
+
+#         echo "web_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
+        
+#     - name: Display AMI IDs
+#       run: |
+#         # echo "DB AMI: ${{ steps.db_create_ami.outputs.db_ami_id }}"
+#         echo "Web AMI: ${{ steps.web_create_ami.outputs.web_ami_id }}"
+
+#     # - name: Terminate DB EC2 instance
+#     #   if: always() # Ensures termination even if previous steps fail
+#     #   run: |
+#     #     aws ec2 terminate-instances --instance-ids ${{ steps.db_ec2_launch.outputs.db_ec2_id }}
+
+#     - name: Terminate web EC2 instance
+#       if: always() # Ensures termination even if previous steps fail
+#       run: |
+#         aws ec2 terminate-instances --instance-ids ${{ steps.web_ec2_launch.outputs.web_ec2_id }}
+
+# # -------------------------------------------------------------------------------------------
+# # -------------------------------------------------------------------------------------------
+#   # distribute-image:
+#   #   name: Distribute golden image
+#   #   needs: [create-golden-image,create-role-image,create-role-image]
+#   #   runs-on: ubuntu-latest
+#   #   environment: Prod
+
+#   #   steps:
+#   #   - name: Checkout
+#   #     uses: actions/checkout@v4
+
+#   #   - name: Configure AWS credentials
+#   #     uses: aws-actions/configure-aws-credentials@v2
+#   #     with:
+#   #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+#   #       aws-region: ${{ vars.AWS_REGION }}
+
+#   #   - name: Install Terraform
+#   #     uses: hashicorp/setup-terraform@v2
+#   #     with:
+#   #       terraform_version: latest
+
+#   #   - name: Setup web ASG and ALB
+#   #     run: |
+#   #       terraform init
+#   #       terraform plan
+#   #       terraform apply -auto-approve \
+#   #         -var="ami_id=${{ needs.create-role-image.outputs.web_ami_id }}" \
+#   #         -var="instance_type=$INSTANCE_TYPE" \
+#   #         -var="key_name=$KEY_NAME" \
+#   #         -var="security_group=$SECURITY_GROUP" \
+#   #         -var="iam_instance_profile=$IAM_INSTANCE" \
+#   #         -var="aws_region=$AWS_REGION" \
+#   #         -var="vpc=$VPC"
+#   #         -subnet="$SUBNET"
+
+#   #     env:
+#   #       AMD_ID: ${{ needs.create-role-image.outputs.web_ami_id }}
+#   #       INSTANCE_TYPE: "t2.micro"
+#   #       KEY_NAME: ${{ secrets.AWS_KEYNAME }}
+#   #       SECURITY_GROUP: ${{ secrets.AWS_SECURITYGROUP }}
+#   #       IAM_INSTANCE: ${{ secrets.AWS_PIPELINE_ROLE }}
+#   #       AWS_REGION: ${{ vars.AWS_REGION }}
+#   #       VPC: ${{ secrets.AWS_VPC }}
+#   #       SUBNET: ${{ secrets.AWS_SUBNET }}
+
+# # -------------------------------------------------------------------------------------------
+# # -------------------------------------------------------------------------------------------
+#   # setup-dashboard:
+#   #   name: Setup dashboard
+#   #   runs-on: ubuntu-latest
+#   #   environment: Prod
+#   #   steps: distribute-image
+
+#   #   steps:
+#   #   - name: Checkout
+#   #     uses: actions/checkout@v4
+
+#   #   - name: Configure AWS credentials
+#   #     uses: aws-actions/configure-aws-credentials@v2
+#   #     with:
+#   #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+#   #       aws-region: ${{ vars.AWS_REGION }}
+
+# # -------------------------------------------------------------------------------------------
+# # -------------------------------------------------------------------------------------------
+#   # incident-tracking:
+#   #   name: Setup incident tracking
+#   #   runs-on: ubuntu-latest
+#   #   environment: Prod
+#   #   steps: setup-dashboard
+
+#   #   steps:
+#   #   - name: Checkout
+#   #     uses: actions/checkout@v4
+
+#   #   - name: Configure AWS credentials
+#   #     uses: aws-actions/configure-aws-credentials@v2
+#   #     with:
+#   #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+#   #       aws-region: ${{ vars.AWS_REGION }}

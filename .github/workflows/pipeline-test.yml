@@ -1,0 +1,41 @@
+name: Test Pipeline
+
+on:
+  workflow_call:
+  # push:
+  #   branches: [ "test" ]
+
+permissions:
+  id-token: write
+  contents: read
+
+# env:
+#   VERSION: "8.2.1" # 1.7.8.11/8.2.1 
+
+jobs:
+  create-role-image:
+    name: Create and customize role images
+    runs-on: ubuntu-latest
+    environment: Prod
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install Ansible
+      run: |
+        sudo apt update
+        sudo apt install -y ansible
+
+    - name: Run DB customization
+      run: |
+        ansible-playbook -i "localhost," test.yml \
+        -u ubuntu --private-key ec2-key.pem \
+        --extra-vars "version=$VERSION" \
+        --extra-vars "MYSQL_STOREFRONT_USER=$MYSQL_STOREFRONT_USER" \
+        --extra-vars "MYSQL_STOREFRONT_PASSWORD=$MYSQL_STOREFRONT_PASSWORD" \
+        --extra-vars "MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD"
+      env:
+        MYSQL_STOREFRONT_USER: ${{ secrets.MYSQL_STOREFRONT_USER }}
+        MYSQL_STOREFRONT_PASSWORD: ${{ secrets.MYSQL_STOREFRONT_PASSWORD }}
+        MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
