@@ -1,5 +1,5 @@
 ---
-- name: Test
+- name: Configure PrestaShop Database
   hosts: "{{ HOSTS | default('localhost') }}"
   connection: "{{ CONNECTION_TYPE | default('local') }}"
   become: yes
@@ -14,28 +14,33 @@
     DB_SERVICE_NAME: "mariadb"
     DB_ROOT_USER: "root"
     DB_LOGIN_SOCKET: "/var/run/mysqld/mysqld.sock"
+    PRESTASHOP_ZIP: "prestashop_{{ PRESTASHOP_VERSION }}.zip"
+    PRESTASHOP_URL: "https://github.com/PrestaShop/PrestaShop/releases/download/{{ PRESTASHOP_VERSION }}/{{ PRESTASHOP_ZIP }}"
+    PRESTASHOP_DEST: "/var/www/storefront"
 
   pre_tasks:
     - name: Update apt cache
-      ansible.builtin.apt:
+      apt:
         update_cache: yes
       when: ansible_os_family == "Debian"
 
-    - name: Install DB server and Python MySQL client
-      ansible.builtin.package:
+    - name: Install required packages
+      package:
         name:
           - "{{ DB_SERVER_PACKAGE }}"
           - python3-mysqldb
+          - unzip
+          - wget
         state: present
 
     - name: Ensure DB service is running
-      ansible.builtin.service:
+      service:
         name: "{{ DB_SERVICE_NAME }}"
         state: started
         enabled: yes
 
     - name: Set MySQL root password (if needed)
-      ansible.builtin.command: >
+      command: >
         mysqladmin -u {{ DB_ROOT_USER }} password {{ MYSQL_ROOT_PASSWORD }}
       when: MYSQL_ROOT_PASSWORD | length > 0
       changed_when: true
@@ -61,8 +66,33 @@
         login_password: "{{ MYSQL_ROOT_PASSWORD | default(omit) }}"
         login_unix_socket: "{{ DB_LOGIN_SOCKET if MYSQL_ROOT_PASSWORD is not defined else omit }}"
 
+    - name: Create destination directory
+      file:
+        path: "{{ PRESTASHOP_DEST }}"
+        state: directory
+        mode: '0755'
+
+    - name: Download PrestaShop release {{ PRESTASHOP_VERSION }}
+      get_url:
+        url: "{{ PRESTASHOP_URL }}"
+        dest: "/tmp/{{ PRESTASHOP_ZIP }}"
+        mode: '0644'
+
+    - name: Unzip PrestaShop
+      unarchive:
+        src: "/tmp/{{ PRESTASHOP_ZIP }}"
+        dest: "{{ PRESTASHOP_DEST }}"
+        remote_src: yes
+
+    - name: Set permissions on storefront directory
+      file:
+        path: "{{ PRESTASHOP_DEST }}"
+        owner: www-data
+        group: www-data
+        recurse: yes
+
   handlers:
     - name: Restart DB service
-      ansible.builtin.service:
+      service:
         name: "{{ DB_SERVICE_NAME }}"
         state: restarted

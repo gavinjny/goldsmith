@@ -80,7 +80,6 @@
         name: storefront
         state: present
         login_user: root
-        login_password: "{{ MYSQL_ROOT_PASSWORD }}"
 
     - name: Download PrestaShop
       get_url:
