@@ -294,8 +294,6 @@ jobs:
         ansible-playbook -i "${{ steps.web_get_ip.outputs.web_public_ip }}," image-web.yml \
         -u ubuntu --private-key ec2-key.pem \
         --extra-vars "version=$VERSION"
-      # env:
-      #   VERSION: "1.7.8.11" # 1.7.8.11/8.2.1 
 
     - name: Delete DB AMI if it exists
       run: | 
