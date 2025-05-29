@@ -19,7 +19,7 @@ packer {
 }
 
 source "amazon-ebs" "ubuntu" {
-  ami_name               = "snapshot-demo-base-${var.version}"
+  ami_name               = "ami-demo-base-${var.version}"
   instance_type          = "t2.micro"
   region                 = var.aws_region
   ssh_username           = "ubuntu"
@@ -36,11 +36,11 @@ source "amazon-ebs" "ubuntu" {
     most_recent = true
   }
 
-  tags = {
-    Name        = "ami-demo-base-${var.version}"
-    CreatedBy   = "Goldsmith pipeline"
-    Environment = "Prod"
-  }
+  # tags = {
+  #   Name        = "ami-demo-base-${var.version}"
+  #   CreatedBy   = "Goldsmith pipeline"
+  #   Environment = "Prod"
+  # }
 }
 
 build {
