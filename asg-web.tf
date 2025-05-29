@@ -1,18 +1,18 @@
-variable "ami_id" {}
-variable "instance_type" {}
-variable "key_name" {}
-variable "security_group" {}
-variable "iam_instance_profile" {}
-variable "aws_region" {}
-variable "vpc" {}
-variable "subnet" {}
+# variable "ami_id" {}
+# variable "instance_type" {}
+# variable "key_name" {}
+# variable "security_group" {}
+# variable "iam_instance_profile" {}
+# variable "aws_region" {}
+# variable "vpc" {}
+# variable "subnet" {}
 
-provider "aws" {
-  region = var.aws_region
-}
+# provider "aws" {
+#   region = var.aws_region
+# }
 
-resource "aws_launch_template" "storefront" {
-  name_prefix   = "storefront-web-"
+resource "aws_launch_template" "demo" {
+  name_prefix   = "demo-web-"
   image_id      = var.ami_id
   instance_type = var.instance_type
   key_name      = var.key_name
@@ -27,25 +27,25 @@ resource "aws_launch_template" "storefront" {
     resource_type = "instance"
 
     tags = {
-      Name = "storefront-autoscale"
+      Name = "demo-autoscale"
     }
   }
 }
 
-resource "aws_autoscaling_group" "storefront_asg" {
+resource "aws_autoscaling_group" "demo_asg" {
   desired_capacity     = 2
   max_size             = 3
   min_size             = 1
   vpc_zone_identifier  = [var.vpc]
 
   launch_template {
-    id      = aws_launch_template.storefront.id
+    id      = aws_launch_template.demo.id
     version = "$Latest"
   }
 
   tag {
     key                 = "Name"
-    value               = "storefront-asg-instance"
+    value               = "demo-asg-instance"
     propagate_at_launch = true
   }
 

@@ -13,7 +13,7 @@ provider "aws" {
 
 
 resource "aws_lb" "app_alb" {
-  name               = "alb-storefront-canary"
+  name               = "alb-demo-canary"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [var.security_group]
