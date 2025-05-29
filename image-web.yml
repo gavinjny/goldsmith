@@ -3,6 +3,7 @@
   vars:
     resume_local_path: ./resume/index.html
     resume_remote_path: /var/www/html/index.html
+  become: true
 
   tasks:
   # ----------------------------INSTALL WEB SERVER AND DEPENDENCIES----------------------------------
