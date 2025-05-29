@@ -439,7 +439,7 @@ jobs:
       with:
         terraform_version: latest
 
-    - name: Setup web ASG 
+    - name: Setup web ASG and ALB
       run: |
         terraform init
         terraform apply -auto-approve \
@@ -450,6 +450,7 @@ jobs:
           -var="iam_instance_profile=$IAM_INSTANCE" \
           -var="aws_region=$AWS_REGION" \
           -var="vpc=$VPC"
+          -subnet="$SUBNET"
 
       env:
         AMD_ID: ${{ needs.create-role-image.outputs.web_ami_id }}
@@ -459,6 +460,7 @@ jobs:
         IAM_INSTANCE: ${{ secrets.AWS_PIPELINE_ROLE }}
         AWS_REGION: ${{ vars.AWS_REGION }}
         VPC: ${{ secrets.AWS_VPC }}
+        SUBNET: ${{ secrets.AWS_SUBNET }}
 
 # -------------------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------------------

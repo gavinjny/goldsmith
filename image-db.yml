@@ -1,6 +1,6 @@
 - hosts: "%"
   vars:
-    VERSION: "{{ VERSION }}"
+    PSVERSION: "{{ VERSION }}"
     MYSQL_STOREFRONT_USER: "{{ MYSQL_STOREFRONT_USER }}"
     MYSQL_STOREFRONT_PASSWORD: "{{ MYSQL_STOREFRONT_PASSWORD }}"
   become: true
@@ -51,7 +51,7 @@
 
     - name: Download PrestaShop
       get_url:
-        url: "https://github.com/PrestaShop/PrestaShop/archive/refs/tags/{{ VERSION }}.zip"
+        url: "https://github.com/PrestaShop/PrestaShop/archive/refs/tags/{{ PSVERSION }}.zip"
         dest: "/tmp/prestashop.zip"
 
     - name: Unzip PrestaShop
