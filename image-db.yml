@@ -1,4 +1,4 @@
-- hosts: all
+- hosts: "%"
   vars:
     VERSION: "{{ VERSION }}"
     MYSQL_STOREFRONT_USER: "{{ MYSQL_STOREFRONT_USER }}"
@@ -11,6 +11,7 @@
         name: mysql-server
         state: present
         update_cache: yes
+
 # ----------------------------INSTALL SSM----------------------------------
     - name: Ensure snap is installed
       apt:
