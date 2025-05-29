@@ -17,19 +17,19 @@ permissions:
   # VERSION: "1.7.8.11" # 1.7.8.11/8.2.1 
 
 jobs:
-  reset-aws:
-    name: Reset AWS objects
-    uses: ./.github/workflows/pipeline-drop-aws.yml
-    secrets: inherit
+  # reset-aws:
+  #   name: Reset AWS objects
+  #   uses: ./.github/workflows/pipeline-drop-aws.yml
+  #   secrets: inherit
 # -------------------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------------------
   create-golden-image:
     name: Create base image
-    needs: reset-aws
+    # needs: reset-aws
     runs-on: ubuntu-latest
     environment: Prod
     outputs:
-      base_ami_id: ${{ steps.base_build.outputs.base_ami_id }} # "ami-0caf48451cb6750de" ${{ steps.base_build.outputs.base_ami_id }}
+      base_ami_id: "ami-demo-base-v20250529.14" # ${{ steps.base_build.outputs.base_ami_id }}
       base_ami_name: ${{ steps.get_base_ami_name.outputs.base_ami_name }} # "snapshot-demo-base-v20250526.1" ${{ steps.get_base_ami_name.outputs.base_ami_name }}
       base_ami_name_part: ${{ steps.split_ami_name.outputs.base_ami_name_part }} # "v20250526.1" ${{ steps.split_ami_name.outputs.base_ami_name_part }}
 
@@ -43,34 +43,34 @@ jobs:
         role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
         aws-region: ${{ vars.AWS_REGION }}
 # ---------------------------------------------//----------------------------------------------
-    - name: Install Packer
-      uses: hashicorp/setup-packer@v2
-      with:
-        version: 'latest'
+    # - name: Install Packer
+    #   uses: hashicorp/setup-packer@v2
+    #   with:
+    #     version: 'latest'
 
-    - name: Initialize Packer
-      run: packer init image-base.pkr.hcl
+    # - name: Initialize Packer
+    #   run: packer init image-base.pkr.hcl
 
-    - name: Validate Packer template
-      run: |
-        packer validate -var "aws_region=${{ vars.AWS_REGION }}" -var "version=" image-base.pkr.hcl
+    # - name: Validate Packer template
+    #   run: |
+    #     packer validate -var "aws_region=${{ vars.AWS_REGION }}" -var "version=" image-base.pkr.hcl
 
-    - name: Build and customize base AMI
-      id: base_build
-      run: |
-          RUN_NUM=${GITHUB_RUN_NUMBER}
-          TIMESTAMP=$(date -u +%Y%m%d)
-          version="v${TIMESTAMP}.${RUN_NUM}"
-          echo "Running Packer build to create version $version ..."
-          packer build -var "aws_region=${{ vars.AWS_REGION }}" -var "version=$version" -machine-readable image-base.pkr.hcl | tee packer_output.log
-          echo "Extracting AMI ID from output..."
-          AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
-          echo "base_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
+    # - name: Build and customize base AMI
+    #   id: base_build
+    #   run: |
+    #       RUN_NUM=${GITHUB_RUN_NUMBER}
+    #       TIMESTAMP=$(date -u +%Y%m%d)
+    #       version="v${TIMESTAMP}.${RUN_NUM}"
+    #       echo "Running Packer build to create version $version ..."
+    #       packer build -var "aws_region=${{ vars.AWS_REGION }}" -var "version=$version" -machine-readable image-base.pkr.hcl | tee packer_output.log
+    #       echo "Extracting AMI ID from output..."
+    #       AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
+    #       echo "base_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
 
     - name: Get base AMI name
       id: get_base_ami_name
       run: |
-        AMI_ID=${{ steps.base_build.outputs.base_ami_id }}
+        AMI_ID= "ami-demo-base-v20250529.14" # ${{ steps.base_build.outputs.base_ami_id }}
 
         echo "Looking up AMI Name for: $AMI_ID"
         AMI_NAME=$(aws ec2 describe-images \
