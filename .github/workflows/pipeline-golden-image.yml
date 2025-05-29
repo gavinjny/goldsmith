@@ -24,9 +24,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: Prod
     outputs:
-      base_ami_id: ${{ steps.packerbuild.outputs.base_ami_id }} # "ami-0caf48451cb6750de" ${{ steps.packerbuild.outputs.base_ami_id }}
+      base_ami_id: ${{ steps.base_build.outputs.base_ami_id }} # "ami-0caf48451cb6750de" ${{ steps.base_build.outputs.base_ami_id }}
       base_ami_name: ${{ steps.get_base_ami_name.outputs.base_ami_name }} # "snapshot-demo-base-v20250526.1" ${{ steps.get_base_ami_name.outputs.base_ami_name }}
-      base_ami_namepart: ${{ steps.split_ami_name.outputs.base_ami_namepart }} # "v20250526.1" ${{ steps.split_ami_name.outputs.base_ami_namepart }}
+      base_ami_name_part: ${{ steps.split_ami_name.outputs.base_ami_name_part }} # "v20250526.1" ${{ steps.split_ami_name.outputs.base_ami_name_part }}
 
     steps:
     - name: Checkout
@@ -51,7 +51,7 @@ jobs:
         packer validate -var "aws_region=${{ vars.AWS_REGION }}" -var "version=" image-base.pkr.hcl
 
     - name: Build and customize base AMI
-      id: packerbuild
+      id: base_build
       run: |
           RUN_NUM=${GITHUB_RUN_NUMBER}
           TIMESTAMP=$(date -u +%Y%m%d)
@@ -60,11 +60,12 @@ jobs:
           packer build -var "aws_region=${{ vars.AWS_REGION }}" -var "version=$version" -machine-readable image-base.pkr.hcl | tee packer_output.log
           echo "Extracting AMI ID from output..."
           AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
+          # echo "base_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
 
     - name: Get base AMI name
       id: get_base_ami_name
       run: |
-        AMI_ID=${{ steps.packerbuild.outputs.base_ami_id }}
+        AMI_ID=${{ steps.base_build.outputs.base_ami_id }}
 
         echo "Looking up AMI Name for: $AMI_ID"
         AMI_NAME=$(aws ec2 describe-images \
@@ -79,9 +80,9 @@ jobs:
       id: split_ami_name
       run: |
         base_ami_name="${{ steps.get_base_ami_name.outputs.base_ami_name }}"
-        base_ami_namepart=$(echo "$base_ami_name" | awk -F '-' '{print $NF}')
-        echo $base_ami_namepart
-        echo "base_ami_namepart=$base_ami_namepart" >> $GITHUB_OUTPUT
+        base_ami_name_part=$(echo "$base_ami_name" | awk -F '-' '{print $NF}')
+        echo $base_ami_name_part
+        echo "base_ami_name_part=$base_ami_name_part" >> $GITHUB_OUTPUT
 
 # -------------------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------------------
@@ -107,7 +108,7 @@ jobs:
     - name: Launch base EC2 instance from base AMI
       id: base_ec2_launch
       run: |
-        NAME="ec2-base-zero-demo-${{ needs.create-golden-image.outputs.base_ami_namepart }}"
+        NAME="ec2-base-zero-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}"
         INSTANCE_INFO=$(aws ec2 run-instances \
           --image-id "${{ needs.create-golden-image.outputs.base_ami_id }}" \
           --count 1 \
@@ -186,7 +187,7 @@ jobs:
     # - name: Launch DB EC2 instance from AMI
     #   id: db_ec2_launch
     #   run: |
-    #     NAME="ec2-db-zero-demo-${{ needs.create-golden-image.outputs.base_ami_namepart }}"
+    #     NAME="ec2-db-zero-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}"
     #     INSTANCE_INFO=$(aws ec2 run-instances \
     #       --image-id "${{ needs.create-golden-image.outputs.base_ami_id }}" \
     #       --count 1 \
@@ -214,7 +215,7 @@ jobs:
     - name: Launch web EC2 instance from AMI
       id: web_ec2_launch
       run: |
-        NAME="ec2-web-zero-demo-${{ needs.create-golden-image.outputs.base_ami_namepart }}"
+        NAME="ec2-web-zero-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}"
         INSTANCE_INFO=$(aws ec2 run-instances \
           --image-id "${{ needs.create-golden-image.outputs.base_ami_id }}" \
           --count 1 \
@@ -323,7 +324,7 @@ jobs:
     #     fi
 
     #   env:
-    #       AMI_NAME: snapshot-demo-db-${{ needs.create-golden-image.outputs.base_ami_namepart }}
+    #       AMI_NAME: snapshot-demo-db-${{ needs.create-golden-image.outputs.base_ami_name_part }}
 
     - name: Delete web AMI if it exists
       run: | 
@@ -353,7 +354,7 @@ jobs:
         fi
 
       env:
-          AMI_NAME: snapshot-demo-web-${{ needs.create-golden-image.outputs.base_ami_namepart }}
+          AMI_NAME: snapshot-demo-web-${{ needs.create-golden-image.outputs.base_ami_name_part }}
 
     # - name: Create DB AMI
     #   id: db_create_ami
@@ -362,7 +363,7 @@ jobs:
     #     echo "Creating db AMI from instance: $ec2_id"
     #     AMI_ID=$(aws ec2 create-image \
     #       --instance-id "$ec2_id" \
-    #       --name "ami-demo-db-${{ needs.create-golden-image.outputs.base_ami_namepart }}" \
+    #       --name "ami-demo-db-${{ needs.create-golden-image.outputs.base_ami_name_part }}" \
     #       --no-reboot \
     #       --query 'ImageId' \
     #       --output text)
@@ -370,7 +371,7 @@ jobs:
     #     aws ec2 create-tags \
     #       --resources "$AMI_ID" \
     #       --tags \
-    #       Key=Name,Value="snapshot-demo-db-${{ needs.create-golden-image.outputs.base_ami_namepart }}" \
+    #       Key=Name,Value="snapshot-demo-db-${{ needs.create-golden-image.outputs.base_ami_name_part }}" \
     #       Key=CreatedBy,Value="Goldsmith pipeline" \
     #       Key=Environment,Value="Prod"
 
@@ -384,7 +385,7 @@ jobs:
         echo "Creating web AMI from instance: $ec2_id"
         AMI_ID=$(aws ec2 create-image \
           --instance-id "$ec2_id" \
-          --name "ami-demo-web-${{ needs.create-golden-image.outputs.base_ami_namepart }}" \
+          --name "ami-demo-web-${{ needs.create-golden-image.outputs.base_ami_name_part }}" \
           --no-reboot \
           --query 'ImageId' \
           --output text)
@@ -392,7 +393,7 @@ jobs:
         aws ec2 create-tags \
           --resources "$AMI_ID" \
           --tags \
-          Key=Name,Value="snapshot-demo-web-${{ needs.create-golden-image.outputs.base_ami_namepart }}" \
+          Key=Name,Value="snapshot-demo-web-${{ needs.create-golden-image.outputs.base_ami_name_part }}" \
           Key=CreatedBy,Value="Goldsmith pipeline" \
           Key=Environment,Value="Prod"
 
