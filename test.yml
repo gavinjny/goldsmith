@@ -10,9 +10,9 @@
     PSVERSION_VERSION: "{{ VERSION | default('1.7.8.11') }}" # Typically for download URL, not used here
 
     # Mandatory variables you need to pass during execution
-    MYSQL_ROOT_PASSWORD: "{{ MYSQL_ROOT_PASSWORD_VAR }}"
-    MYSQL_STOREFRONT_USER: "{{ MYSQL_STOREFRONT_USER_VAR }}"
-    MYSQL_STOREFRONT_PASSWORD: "{{ MYSQL_STOREFRONT_PASSWORD_VAR }}"
+    MYSQL_ROOT_PASSWORD: "{{ MYSQL_ROOT_PASSWORD }}"
+    MYSQL_STOREFRONT_USER: "{{ MYSQL_STOREFRONT_USER }}"
+    MYSQL_STOREFRONT_PASSWORD: "{{ MYSQL_STOREFRONT_PASSWORD }}"
 
     # Optional: You can override these defaults
     MYSQL_STOREFRONT_DB: "{{ MYSQL_STOREFRONT_DB_VAR | default('prestashop_db') }}"
