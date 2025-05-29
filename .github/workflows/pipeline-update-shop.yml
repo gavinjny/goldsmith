@@ -282,10 +282,12 @@ jobs:
         -u ubuntu --private-key ec2-key.pem \
         --extra-vars "version=$VERSION" \
         --extra-vars "MYSQL_STOREFRONT_USER=$MYSQL_STOREFRONT_USER" \
-        --extra-vars "MYSQL_STOREFRONT_PASSWORD=$MYSQL_STOREFRONT_PASSWORD"
+        --extra-vars "MYSQL_STOREFRONT_PASSWORD=$MYSQL_STOREFRONT_PASSWORD" \
+        --extra-vars "MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD"
       env:
         MYSQL_STOREFRONT_USER: ${{ secrets.MYSQL_STOREFRONT_USER }}
         MYSQL_STOREFRONT_PASSWORD: ${{ secrets.MYSQL_STOREFRONT_PASSWORD }}
+        MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
 
     - name: Run web customization
       run: |

@@ -3,6 +3,7 @@
     PSVERSION: "{{ VERSION }}"
     MYSQL_STOREFRONT_USER: "{{ MYSQL_STOREFRONT_USER }}"
     MYSQL_STOREFRONT_PASSWORD: "{{ MYSQL_STOREFRONT_PASSWORD }}"
+    MYSQL_ROOT_PASSWORD: "{{ MYSQL_ROOT_PASSWORD }}"
   become: true
   tasks:
 # ----------------------------INSTALL DB SERVER AND PREREQ----------------------------------
@@ -19,7 +20,6 @@
         name: PyMySQL
         executable: pip3
 
-    # (Optional) Explicitly tell Ansible to use Python 3
     - name: Set Python interpreter
       set_fact:
         ansible_python_interpreter: /usr/bin/python3
@@ -35,6 +35,13 @@
         name: mysql
         state: started
         enabled: yes
+
+    - name: Set MySQL root password (if needed)
+      mysql_user:
+        name: root
+        host: localhost
+        password: "{{ MYSQL_ROOT_PASSWORD }}"
+        login_unix_socket: /var/run/mysqld/mysqld.sock
 
 # ----------------------------INSTALL SSM----------------------------------
     - name: Ensure snap is installed
@@ -66,12 +73,14 @@
         priv: "storefront.*:ALL"
         state: present
         login_user: root
+        login_password: "{{ MYSQL_ROOT_PASSWORD }}"
 
     - name: Create PrestaShop database
       community.mysql.mysql_db:
         name: storefront
         state: present
         login_user: root
+        login_password: "{{ MYSQL_ROOT_PASSWORD }}"
 
     - name: Download PrestaShop
       get_url:
