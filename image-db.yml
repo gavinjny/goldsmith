@@ -5,7 +5,25 @@
     MYSQL_STOREFRONT_PASSWORD: "{{ MYSQL_STOREFRONT_PASSWORD }}"
   become: true
   tasks:
-# ----------------------------INSTALL DB SERVER----------------------------------
+# ----------------------------INSTALL DB SERVER AND PREREQ----------------------------------
+    # Ensure Python 3 and pip are installed
+    - name: Install Python 3 and pip
+      apt:
+        name: [python3, python3-pip]
+        state: present
+        update_cache: yes
+
+    # Install PyMySQL via pip
+    - name: Install PyMySQL
+      pip:
+        name: PyMySQL
+        executable: pip3
+
+    # (Optional) Explicitly tell Ansible to use Python 3
+    - name: Set Python interpreter
+      set_fact:
+        ansible_python_interpreter: /usr/bin/python3
+
     - name: Install MySQL Server
       apt:
         name: mysql-server
@@ -29,12 +47,6 @@
       command: snap start amazon-ssm-agent
 
 # ----------------------------INSTALL PRESTASHOP DB----------------------------------
-    - name: Install Python MySQL client (PyMySQL)
-      apt:
-        name: python3-pymysql
-        state: present
-        update_cache: yes
-
     - name: Install Python MySQL client
       apt:
         name: python3-pymysql
