@@ -1,0 +1,191 @@
+# name: Create & deploy Storefront infrastructure
+
+# on:
+#   push:
+#     branches: [ "test" ]
+
+# permissions:
+#   id-token: write
+#   contents: read
+
+env:
+  VERSION: "1.7.8.11" # 1.7.8.11/8.2.1 
+
+jobs:
+  # reset-aws:
+  #   name: Reset AWS objects
+  #   uses: ./.github/workflows/pipeline-drop-aws.yml
+  #   secrets: inherit
+# -------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
+  create-golden-image:
+    name: Create base image
+    # steps: reset-aws
+    runs-on: ubuntu-latest
+    environment: Prod
+    outputs:
+      base_ami_id: "ami-0caf48451cb6750de"
+      base_ami_name: "snapshot-storefront-base-v20250526.1"
+      base_ami_namepart: "v20250526.1"
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+        aws-region: ${{ vars.AWS_REGION }}
+
+    # - name: Install Packer
+    #   uses: hashicorp/setup-packer@v2
+    #   with:
+    #     version: 'latest'
+
+    # - name: Initialize Packer
+    #   run: packer init image-base.pkr.hcl
+
+    # - name: Validate Packer template
+    #   run: |
+    #     packer validate -var "aws_region=${{ vars.AWS_REGION }}" -var "version=" image-base.pkr.hcl
+
+    # - name: Build and customize base AMI
+    #   id: packerbuild
+    #   run: |
+    #       RUN_NUM=${GITHUB_RUN_NUMBER}
+    #       TIMESTAMP=$(date -u +%Y%m%d)
+    #       version="v${TIMESTAMP}.${RUN_NUM}"
+    #       echo "Running Packer build to create version $version ..."
+    #       packer build -var "aws_region=${{ vars.AWS_REGION }}" -var "version=$version" -machine-readable image-base.pkr.hcl | tee packer_output.log
+    #       echo "Extracting AMI ID from output..."
+    #       AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
+
+    # - name: Get base AMI name
+    #   id: get_base_ami_name
+    #   run: |
+    #     AMI_ID=${{ steps.packerbuild.outputs.base_ami_id }}
+
+    #     echo "Looking up AMI Name for: $AMI_ID"
+    #     AMI_NAME=$(aws ec2 describe-images \
+    #       --image-ids "$AMI_ID" \
+    #       --query 'Images[0].Name' \
+    #       --output text)
+
+    #     echo "AMI Name: $AMI_NAME"
+    #     echo "base_ami_name=$AMI_NAME" >> $GITHUB_OUTPUT
+
+    # - name: Extract last part from AMI name part
+    #   id: split_ami_name
+    #   run: |
+    #     base_ami_name="${{ steps.get_base_ami_name.outputs.base_ami_name }}"
+    #     base_ami_namepart=$(echo "$base_ami_name" | awk -F '-' '{print $NF}')
+    #     echo $base_ami_namepart
+    #     echo "base_ami_namepart=$base_ami_namepart" >> $GITHUB_OUTPUT
+
+# -------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
+  test-base-image:
+    name: Test base image
+    needs: create-golden-image
+    runs-on: ubuntu-latest
+    environment: Prod
+    outputs:
+      base_ec2_id: ${{ steps.base_ec2_launch.outputs.base_ec2_id }}
+      base_public_ip: ${{ steps.base_get_ip.outputs.base_public_ip }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+        aws-region: ${{ vars.AWS_REGION }}
+
+    - name: Launch base EC2 instance from base AMI
+      id: base_ec2_launch
+      run: |
+        NAME="ec2-base-zero-storefront-${{ needs.create-golden-image.outputs.base_ami_namepart }}"
+        INSTANCE_INFO=$(aws ec2 run-instances \
+          --image-id "${{ needs.create-golden-image.outputs.base_ami_id }}" \
+          --count 1 \
+          --instance-type t2.micro \
+          --key-name ${{ secrets.AWS_KEYNAME }} \
+          --subnet-id ${{ secrets.AWS_SUBNET }} \
+          --security-group-ids ${{ secrets.AWS_SECURITYGROUP }} \
+          --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME},{Key=Role,Value=Base},{Key=CreatedBy,Value=Goldsmith pipeline}]" \
+          --query 'Instances[0].[InstanceId]' \
+          --output text)
+        base_ec2_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
+        echo "base_ec2_id=$base_ec2_id" >> $GITHUB_OUTPUT
+
+    - name: Retrieve base instance public ip address
+      id: base_get_ip
+      run: |
+        # Added wait for instance to be running to ensure IP is available.
+        aws ec2 wait instance-running --instance-ids "${{ steps.base_ec2_launch.outputs.base_ec2_id }}"
+        base_public_ip=$(aws ec2 describe-instances \
+          --instance-ids "${{ steps.base_ec2_launch.outputs.base_ec2_id }}" \
+          --query 'Reservations[0].Instances[0].PublicIpAddress' \
+          --output text)
+        echo "base_public_ip=$base_public_ip" >> $GITHUB_OUTPUT
+
+    # - name: Write EC2 private key locally
+    #   run: echo "$AWS_EC2_PRIVATE_KEY" > ./ec2-key.pem && chmod 600 ./ec2-key.pem
+    #   env:
+    #     AWS_EC2_PRIVATE_KEY: ${{ secrets.AWS_EC2_PRIVATE_KEY }}
+
+    # - name: Install InSpec
+    #   run: |
+    #     curl https://omnitruck.chef.io/install.sh | sudo bash -s -- -P inspec
+
+    # - name: Find InSpec license
+    #   run: |
+    #     CHEF_LICENSE=accept inspec license status
+
+    # - name: Run InSpec test on EC2
+    #   run: |
+    #     CHEF_LICENSE=accept inspec exec inspec-profile/controls/image-base.rb \
+    #       -t ssh://ubuntu@${{ steps.base_get_ip.outputs.base_public_ip }} \
+    #       --key-files ./ec2-key.pem
+
+    - name: Terminate base EC2 instance
+      if: always() # Ensures termination even if previous steps fail
+      run: |
+        aws ec2 terminate-instances --instance-ids ${{ steps.base_ec2_launch.outputs.base_ec2_id }}
+        # Added wait for instance to be terminated for cleaner state.
+        aws ec2 wait instance-terminated --instance-ids ${{ steps.base_ec2_launch.outputs.base_ec2_id }}
+
+# -------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
+  create-role-image:
+    name: Create and customize role images
+    needs: [create-golden-image,test-base-image]
+    runs-on: ubuntu-latest
+    environment: Prod
+    outputs:
+      web_ec2_id: ${{ steps.web_ec2_launch.outputs.web_ec2_id }}
+      web_public_ip: ${{ steps.web_get_ip.outputs.web_public_ip }}
+      db_ec2_id: ${{ steps.db_ec2_launch.outputs.db_ec2_id }}
+      db_public_ip: ${{ steps.db_get_ip.outputs.db_public_ip }}
+      web_ami_id: ${{ steps.web_create_ami.outputs.web_ami_id }}
+      db_ami_id: ${{ steps.db_create_ami.outputs.db_ami_id }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Run DB customization
+      run: |
+        ansible-playbook -i "${{ steps.db_get_ip.outputs.db_public_ip }}," image-db.yml \
+        -u ubuntu --private-key ec2-key.pem \
+        --extra-vars "version=$VERSION" \
+        --extra-vars "MYSQL_STOREFRONT_USER=$MYSQL_STOREFRONT_USER" \
+        --extra-vars "MYSQL_STOREFRONT_PASSWORD=$MYSQL_STOREFRONT_PASSWORD" \
+        --extra-vars "MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD"
+      env:
+        MYSQL_STOREFRONT_USER: ${{ secrets.MYSQL_STOREFRONT_USER }}
+        MYSQL_STOREFRONT_PASSWORD: ${{ secrets.MYSQL_STOREFRONT_PASSWORD }}
+        MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}

@@ -278,7 +278,7 @@ jobs:
 
     - name: Run DB customization
       run: |
-        ansible-playbook -i "${{ steps.db_get_ip.outputs.db_public_ip }}," image-db.yml \
+        ansible-playbook -i "${{ steps.db_get_ip.outputs.db_public_ip }}" image-db.yml \
         -u ubuntu --private-key ec2-key.pem \
         --extra-vars "version=$VERSION" \
         --extra-vars "MYSQL_STOREFRONT_USER=$MYSQL_STOREFRONT_USER" \
@@ -291,7 +291,7 @@ jobs:
 
     - name: Run web customization
       run: |
-        ansible-playbook -i "${{ steps.web_get_ip.outputs.web_public_ip }}," image-web.yml \
+        ansible-playbook -i "${{ steps.web_get_ip.outputs.web_public_ip }}" image-web.yml \
         -u ubuntu --private-key ec2-key.pem \
         --extra-vars "version=$VERSION"
       # env:

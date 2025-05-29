@@ -12,7 +12,7 @@ provider "aws" {
 }
 
 resource "aws_launch_template" "storefront" {
-  name_prefix   = "storefront-"
+  name_prefix   = "storefront-web-"
   image_id      = var.ami_id
   instance_type = var.instance_type
   key_name      = var.key_name

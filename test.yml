@@ -1,0 +1,101 @@
+- hosts: "localhost"
+  vars:
+    PSVERSION: "{{ VERSION }}"
+    MYSQL_STOREFRONT_USER: "{{ MYSQL_STOREFRONT_USER }}"
+    MYSQL_STOREFRONT_PASSWORD: "{{ MYSQL_STOREFRONT_PASSWORD }}"
+    MYSQL_ROOT_PASSWORD: "{{ MYSQL_ROOT_PASSWORD }}"
+  become: true
+  tasks:
+# ----------------------------INSTALL DB SERVER AND PREREQ----------------------------------
+    # Ensure Python 3 and pip are installed
+    - name: Install Python 3 and pip
+      apt:
+        name: [python3, python3-pip]
+        state: present
+        update_cache: yes
+
+    # Install PyMySQL via pip
+    - name: Install PyMySQL
+      pip:
+        name: PyMySQL
+        executable: pip3
+
+    - name: Set Python interpreter
+      set_fact:
+        ansible_python_interpreter: /usr/bin/python3
+
+    - name: Install MySQL Server
+      apt:
+        name: mysql-server
+        state: present
+        update_cache: yes
+
+    - name: Ensure MySQL is started and enabled
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+
+    - name: Set MySQL root password (if needed)
+      mysql_user:
+        name: root
+        host: localhost
+        password: "{{ MYSQL_ROOT_PASSWORD }}"
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+
+# ----------------------------INSTALL SSM----------------------------------
+    - name: Ensure snap is installed
+      apt:
+        name: snapd
+        state: present
+        update_cache: yes
+
+    - name: Ensure SSM Agent is installed via snap
+      command: snap install amazon-ssm-agent --classic
+      register: ssm_result
+      changed_when: "'installed' in ssm_result.stdout or 'updated' in ssm_result.stdout"
+      failed_when: false
+
+    - name: Start amazon-ssm-agent via snap
+      command: snap start amazon-ssm-agent
+
+# ----------------------------INSTALL PRESTASHOP DB----------------------------------
+    - name: Install Python MySQL client
+      apt:
+        name: python3-pymysql
+        state: present
+        update_cache: yes
+
+    - name: Create PrestaShop DB user
+      community.mysql.mysql_user:
+        name: "{{ MYSQL_STOREFRONT_USER }}"
+        password: "{{ MYSQL_STOREFRONT_PASSWORD }}"
+        priv: "storefront.*:ALL"
+        state: present
+        login_user: root
+        login_password: "{{ MYSQL_ROOT_PASSWORD }}"
+
+    - name: Create PrestaShop database
+      community.mysql.mysql_db:
+        name: storefront
+        state: present
+        login_user: root
+        login_password: "{{ MYSQL_ROOT_PASSWORD }}"
+
+    - name: Download PrestaShop
+      get_url:
+        url: "https://github.com/PrestaShop/PrestaShop/releases/download/{{ PSVERSION }}/prestashop_{{ PSVERSION }}.zip"
+        dest: "/tmp/prestashop.zip"
+
+    - name: Unzip PrestaShop
+      unarchive:
+        src: "/tmp/prestashop.zip"
+        dest: "/var/www/html/"
+        remote_src: yes
+
+    - name: Set permissions
+      file:
+        path: /var/www/html/
+        owner: www-data
+        group: www-data
+        recurse: yes
