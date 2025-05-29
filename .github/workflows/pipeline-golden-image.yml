@@ -30,7 +30,7 @@ jobs:
     environment: Prod
     outputs:
       base_ami_id: "ami-demo-base-v20250529.14" # ${{ steps.base_build.outputs.base_ami_id }}
-      base_ami_name: ${{ steps.get_base_ami_name.outputs.base_ami_name }} # "snapshot-demo-base-v20250526.1" ${{ steps.get_base_ami_name.outputs.base_ami_name }}
+      base_ami_name: "ami-demo-base-v20250529.14" # "snapshot-demo-base-v20250526.1" ${{ steps.get_base_ami_name.outputs.base_ami_name }}
       base_ami_name_part: ${{ steps.split_ami_name.outputs.base_ami_name_part }} # "v20250526.1" ${{ steps.split_ami_name.outputs.base_ami_name_part }}
 
     steps:
@@ -67,24 +67,24 @@ jobs:
     #       AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
     #       echo "base_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
 
-    - name: Get base AMI name
-      id: get_base_ami_name
+# ${{ steps.base_build.outputs.base_ami_id }}
+    - name: Set base AMI name
       run: |
-        AMI_ID= "ami-demo-base-v20250529.14" # ${{ steps.base_build.outputs.base_ami_id }}
+        AMI_ID= "ami-demo-base-v20250529.14" 
 
-        echo "Looking up AMI Name for: $AMI_ID"
-        AMI_NAME=$(aws ec2 describe-images \
-          --image-ids "$AMI_ID" \
-          --query 'Images[0].Name' \
-          --output text)
+        aws ec2 create-tags \
+        --resources "$AMI_ID" \
+        --tags \
+          Key=Name,Value="$AMI_ID" \
+          Key=CreatedBy,Value="GoldSmith pipeline" \
+          Key=Environment,Value="Prod"
 
-        echo "AMI Name: $AMI_NAME"
-        echo "base_ami_name=$AMI_NAME" >> $GITHUB_OUTPUT
 
+    # ${{ steps.get_base_ami_name.outputs.base_ami_name }}
     - name: Extract last part from AMI name part
       id: split_ami_name
       run: |
-        base_ami_name="${{ steps.get_base_ami_name.outputs.base_ami_name }}"
+        base_ami_name="ami-demo-base-v20250529.14" 
         base_ami_name_part=$(echo "$base_ami_name" | awk -F '-' '{print $NF}')
         echo $base_ami_name_part
         echo "base_ami_name_part=$base_ami_name_part" >> $GITHUB_OUTPUT
