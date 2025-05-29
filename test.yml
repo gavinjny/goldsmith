@@ -1,5 +1,5 @@
 ---
-- name: Configure PrestaShop Database
+- name: Test
   hosts: "{{ HOSTS | default('localhost') }}"
   connection: "{{ CONNECTION_TYPE | default('local') }}"
   become: yes

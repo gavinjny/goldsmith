@@ -1,5 +1,5 @@
 ---
-- name: Configure PrestaShop Database
+- name: Test3
   hosts: "{{ HOSTS | default('localhost') }}"
   connection: "{{ CONNECTION_TYPE | default('local') }}" # Use 'ssh' if connecting to a remote host
   become: yes # Required for tasks like installing packages and managing services
