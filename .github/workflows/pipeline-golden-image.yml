@@ -331,35 +331,35 @@ jobs:
     #   env:
     #       AMI_NAME: snapshot-demo-db-${{ needs.create-golden-image.outputs.base_ami_name_part }}
 
-    - name: Delete web AMI if it exists
-      run: | 
-        echo "Looking up AMI with name: $AMI_NAME"
-        AMI_ID=$(aws ec2 describe-images \
-          --owners self \
-          --filters "Name=name,Values=$AMI_NAME" \
-          --query 'Images[0].ImageId' \
-          --output text 2>/dev/null)
+    # - name: Delete web AMI if it exists
+    #   run: | 
+    #     echo "Looking up AMI with name: $AMI_NAME"
+    #     AMI_ID=$(aws ec2 describe-images \
+    #       --owners self \
+    #       --filters "Name=name,Values=$AMI_NAME" \
+    #       --query 'Images[0].ImageId' \
+    #       --output text 2>/dev/null)
 
-        if [ "$AMI_ID" != "None" ]; then
-          echo "Found AMI: $AMI_ID — deregistering..."
-          aws ec2 deregister-image --image-id "$AMI_ID"
+    #     if [ "$AMI_ID" != "None" ]; then
+    #       echo "Found AMI: $AMI_ID — deregistering..."
+    #       aws ec2 deregister-image --image-id "$AMI_ID"
 
-          echo "Looking up associated snapshots..."
-          SNAPSHOT_IDS=$(aws ec2 describe-images \
-            --image-ids "$AMI_ID" \
-            --query 'Images[0].BlockDeviceMappings[*].Ebs.SnapshotId' \
-            --output text)
+    #       echo "Looking up associated snapshots..."
+    #       SNAPSHOT_IDS=$(aws ec2 describe-images \
+    #         --image-ids "$AMI_ID" \
+    #         --query 'Images[0].BlockDeviceMappings[*].Ebs.SnapshotId' \
+    #         --output text)
 
-          for SNAPSHOT_ID in $SNAPSHOT_IDS; do
-            echo "Deleting snapshot: $SNAPSHOT_ID"
-            aws ec2 delete-snapshot --snapshot-id "$SNAPSHOT_ID"
-          done
-        else
-          echo "No AMI found with name: $AMI_NAME"
-        fi
+    #       for SNAPSHOT_ID in $SNAPSHOT_IDS; do
+    #         echo "Deleting snapshot: $SNAPSHOT_ID"
+    #         aws ec2 delete-snapshot --snapshot-id "$SNAPSHOT_ID"
+    #       done
+    #     else
+    #       echo "No AMI found with name: $AMI_NAME"
+    #     fi
 
-      env:
-          AMI_NAME: snapshot-demo-web-${{ needs.create-golden-image.outputs.base_ami_name_part }}
+    #   env:
+    #       AMI_NAME: snapshot-demo-web-${{ needs.create-golden-image.outputs.base_ami_name_part }}
 
     # - name: Create DB AMI
     #   id: db_create_ami
@@ -387,24 +387,31 @@ jobs:
       id: web_create_ami
       run: |
         ec2_id=${{ steps.web_ec2_launch.outputs.web_ec2_id }}
-        echo "Creating web AMI from instance: $ec2_id"
+        base_name_part=${{ needs.create-golden-image.outputs.base_ami_name_part }}
+
+        echo "Creating AMI 'ami-demo-web-${base_name_part}' from instance: $ec2_id"
         AMI_ID=$(aws ec2 create-image \
           --instance-id "$ec2_id" \
-          --name "ami-demo-web-${{ needs.create-golden-image.outputs.base_ami_name_part }}" \
+          --name "ami-demo-web-${base_name_part}" \
           --no-reboot \
           --query 'ImageId' \
           --output text)
 
+        echo "Tagging AMI snapshot..."
+        # Wait for the snapshot to be created (can optionally add polling logic)
+        sleep 10
+
+        SNAPSHOT_ID=$(aws ec2 describe-images \
+          --image-ids "$AMI_ID" \
+          --query "Images[0].BlockDeviceMappings[0].Ebs.SnapshotId" \
+          --output text)
+
         aws ec2 create-tags \
-          --resources "$AMI_ID" \
-          --tags \
-          Key=Name,Value="snapshot-demo-web-${{ needs.create-golden-image.outputs.base_ami_name_part }}" \
-          Key=CreatedBy,Value="Goldsmith pipeline" \
-          Key=Environment,Value="Prod"
+          --resources "$SNAPSHOT_ID" \
+          --tags Key=Name,Value="snapshot-demo-web-${base_name_part}"
 
-        echo "Web AMI created: $AMI_ID"
         echo "web_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
-
+        
     - name: Display AMI IDs
       run: |
         # echo "DB AMI: ${{ steps.db_create_ami.outputs.db_ami_id }}"

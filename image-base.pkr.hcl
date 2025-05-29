@@ -37,7 +37,7 @@ source "amazon-ebs" "ubuntu" {
   }
 
   tags = {
-    Name        = "snapshot-demo-base-${var.version}"
+    Name        = "ami-demo-base-${var.version}"
     CreatedBy   = "Goldsmith pipeline"
     Environment = "Prod"
   }
@@ -46,7 +46,7 @@ source "amazon-ebs" "ubuntu" {
 build {
   sources = ["source.amazon-ebs.ubuntu"]
   
-  # Upload local InSpec test folder to instance
+# Configure base image
   provisioner "file" {
     source      = "image-base.sh"
     destination = "/tmp/image-base.sh"
@@ -58,19 +58,4 @@ build {
       "sudo /tmp/image-base.sh"
     ]
   }
-
-  # # Upload local InSpec test folder to instance
-  # provisioner "file" {
-  #   source      = "inspec-profile"
-  #   destination = "/tmp/inspec-profile"
-  # }
-
-  # # Install InSpec and run tests
-  # provisioner "shell" {
-  #   inline = [
-  #     "curl https://omnitruck.chef.io/install.sh | sudo bash -s -- -P inspec",
-  #     "cd /tmp/inspec-profile",
-  #     "sudo inspec exec . --chef-license accept --controls image-base || echo '⚠ InSpec tests failed'"
-  #   ]
-  # }
 }
