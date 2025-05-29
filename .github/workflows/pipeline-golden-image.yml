@@ -186,266 +186,266 @@ jobs:
 
 # # -------------------------------------------------------------------------------------------
 # # -------------------------------------------------------------------------------------------
-#   create-role-image:
-#     name: Create and customize role images
-#     needs: [create-golden-image,test-base-image]
-#     runs-on: ubuntu-latest
-#     environment: Prod
-#     outputs:
-#       web_ec2_id: ${{ steps.web_ec2_launch.outputs.web_ec2_id }}
-#       web_public_ip: ${{ steps.web_get_ip.outputs.web_public_ip }}
-#       # db_ec2_id: ${{ steps.db_ec2_launch.outputs.db_ec2_id }}
-#       # db_public_ip: ${{ steps.db_get_ip.outputs.db_public_ip }}
-#       web_ami_id: ${{ steps.web_create_ami.outputs.web_ami_id }}
-#       # db_ami_id: ${{ steps.db_create_ami.outputs.db_ami_id }}
+  create-role-image:
+    name: Create and customize role images
+    needs: [create-golden-image,test-base-image]
+    runs-on: ubuntu-latest
+    environment: Prod
+    outputs:
+      web_ec2_id: ${{ steps.web_ec2_launch.outputs.web_ec2_id }}
+      web_public_ip: ${{ steps.web_get_ip.outputs.web_public_ip }}
+      # db_ec2_id: ${{ steps.db_ec2_launch.outputs.db_ec2_id }}
+      # db_public_ip: ${{ steps.db_get_ip.outputs.db_public_ip }}
+      web_ami_id: ${{ steps.web_create_ami.outputs.web_ami_id }}
+      # db_ami_id: ${{ steps.db_create_ami.outputs.db_ami_id }}
 
-#     steps:
-#     - name: Checkout
-#       uses: actions/checkout@v4
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
 
-#     - name: Configure AWS credentials
-#       uses: aws-actions/configure-aws-credentials@v2
-#       with:
-#         role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
-#         aws-region: ${{ vars.AWS_REGION }}
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+        aws-region: ${{ vars.AWS_REGION }}
 
-#     # - name: Launch DB EC2 instance from AMI
-#     #   id: db_ec2_launch
-#     #   run: |
-#     #     NAME="ec2-db-zero-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}"
-#     #     INSTANCE_INFO=$(aws ec2 run-instances \
-#     #       --image-id "${{ needs.create-golden-image.outputs.base_ami_id }}" \
-#     #       --count 1 \
-#     #       --instance-type t2.micro \
-#     #       --key-name ${{ secrets.AWS_KEYNAME }} \
-#     #       --subnet-id ${{ secrets.AWS_SUBNET }} \
-#     #       --security-group-ids ${{ secrets.AWS_SECURITYGROUP }} \
-#     #       --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME},{Key=Role,Value=DB},{Key=CreatedBy,Value=Goldsmith pipeline}]" \
-#     #       --query 'Instances[0].[InstanceId]' \
-#     #       --output text)
-#     #     db_ec2_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
-#     #     echo "db_ec2_id=$db_ec2_id" >> $GITHUB_OUTPUT
+    # - name: Launch DB EC2 instance from AMI
+    #   id: db_ec2_launch
+    #   run: |
+    #     NAME="ec2-db-zero-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}"
+    #     INSTANCE_INFO=$(aws ec2 run-instances \
+    #       --image-id "${{ needs.create-golden-image.outputs.base_ami_id }}" \
+    #       --count 1 \
+    #       --instance-type t2.micro \
+    #       --key-name ${{ secrets.AWS_KEYNAME }} \
+    #       --subnet-id ${{ secrets.AWS_SUBNET }} \
+    #       --security-group-ids ${{ secrets.AWS_SECURITYGROUP }} \
+    #       --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME},{Key=Role,Value=DB},{Key=CreatedBy,Value=Goldsmith pipeline}]" \
+    #       --query 'Instances[0].[InstanceId]' \
+    #       --output text)
+    #     db_ec2_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
+    #     echo "db_ec2_id=$db_ec2_id" >> $GITHUB_OUTPUT
 
-#     # - name: Retrieve DB instance public ip address
-#     #   id: db_get_ip
-#     #   run: |
-#     #     # Added wait for instance to be running.
-#     #     aws ec2 wait instance-running --instance-ids "${{ steps.db_ec2_launch.outputs.db_ec2_id }}"
-#     #     db_public_ip=$(aws ec2 describe-instances \
-#     #       --instance-ids "${{ steps.db_ec2_launch.outputs.db_ec2_id }}" \
-#     #       --query 'Reservations[0].Instances[0].PublicIpAddress' \
-#     #       --output text)
-#     #     echo "db_public_ip=$db_public_ip" >> $GITHUB_OUTPUT
+    # - name: Retrieve DB instance public ip address
+    #   id: db_get_ip
+    #   run: |
+    #     # Added wait for instance to be running.
+    #     aws ec2 wait instance-running --instance-ids "${{ steps.db_ec2_launch.outputs.db_ec2_id }}"
+    #     db_public_ip=$(aws ec2 describe-instances \
+    #       --instance-ids "${{ steps.db_ec2_launch.outputs.db_ec2_id }}" \
+    #       --query 'Reservations[0].Instances[0].PublicIpAddress' \
+    #       --output text)
+    #     echo "db_public_ip=$db_public_ip" >> $GITHUB_OUTPUT
 
-#     - name: Launch web EC2 instance from AMI
-#       id: web_ec2_launch
-#       run: |
-#         NAME="ec2-web-zero-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}"
-#         INSTANCE_INFO=$(aws ec2 run-instances \
-#           --image-id "${{ needs.create-golden-image.outputs.base_ami_id }}" \
-#           --count 1 \
-#           --instance-type t2.micro \
-#           --key-name ${{ secrets.AWS_KEYNAME }} \
-#           --subnet-id ${{ secrets.AWS_SUBNET }} \
-#           --security-group-ids ${{ secrets.AWS_SECURITYGROUP }} \
-#           --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME},{Key=Role,Value=Web},{Key=CreatedBy,Value=Goldsmith pipeline}]" \
-#           --query 'Instances[0].[InstanceId]' \
-#           --output text)
-#         web_ec2_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
-#         echo "web_ec2_id=$web_ec2_id" >> $GITHUB_OUTPUT
+    - name: Launch web EC2 instance from AMI
+      id: web_ec2_launch
+      run: |
+        NAME="ec2-web-zero-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}"
+        INSTANCE_INFO=$(aws ec2 run-instances \
+          --image-id "${{ needs.create-golden-image.outputs.base_ami_id }}" \
+          --count 1 \
+          --instance-type t2.micro \
+          --key-name ${{ secrets.AWS_KEYNAME }} \
+          --subnet-id ${{ secrets.AWS_SUBNET }} \
+          --security-group-ids ${{ secrets.AWS_SECURITYGROUP }} \
+          --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME},{Key=Role,Value=Web},{Key=CreatedBy,Value=Goldsmith pipeline}]" \
+          --query 'Instances[0].[InstanceId]' \
+          --output text)
+        web_ec2_id=$(echo "$INSTANCE_INFO" | awk '{print $1}')
+        echo "web_ec2_id=$web_ec2_id" >> $GITHUB_OUTPUT
 
-#     - name: Retrieve web instance public ip address
-#       id: web_get_ip
-#       run: |
-#         # Added wait for instance to be running.
-#         aws ec2 wait instance-running --instance-ids "${{ steps.web_ec2_launch.outputs.web_ec2_id }}"
-#         web_public_ip=$(aws ec2 describe-instances \
-#           --instance-ids "${{ steps.web_ec2_launch.outputs.web_ec2_id }}" \
-#           --query 'Reservations[0].Instances[0].PublicIpAddress' \
-#           --output text)
-#         echo "web_public_ip=$web_public_ip" >> $GITHUB_OUTPUT
+    - name: Retrieve web instance public ip address
+      id: web_get_ip
+      run: |
+        # Added wait for instance to be running.
+        aws ec2 wait instance-running --instance-ids "${{ steps.web_ec2_launch.outputs.web_ec2_id }}"
+        web_public_ip=$(aws ec2 describe-instances \
+          --instance-ids "${{ steps.web_ec2_launch.outputs.web_ec2_id }}" \
+          --query 'Reservations[0].Instances[0].PublicIpAddress' \
+          --output text)
+        echo "web_public_ip=$web_public_ip" >> $GITHUB_OUTPUT
 
-#     - name: Display Public IPs
-#       run: |
-#         # echo "DB IP: ${{ steps.db_get_ip.outputs.db_public_ip }}"
-#         echo "Web IP: ${{ steps.web_get_ip.outputs.web_public_ip }}"
+    - name: Display Public IPs
+      run: |
+        # echo "DB IP: ${{ steps.db_get_ip.outputs.db_public_ip }}"
+        echo "Web IP: ${{ steps.web_get_ip.outputs.web_public_ip }}"
 
-#     - name: Install Ansible
-#       run: |
-#         sudo apt update
-#         sudo apt install -y ansible
+    - name: Install Ansible
+      run: |
+        sudo apt update
+        sudo apt install -y ansible
 
-#     - name: Write EC2 private key locally
-#       run: echo "$AWS_EC2_PRIVATE_KEY" > ./ec2-key.pem && chmod 600 ./ec2-key.pem
-#       env:
-#         AWS_EC2_PRIVATE_KEY: ${{ secrets.AWS_EC2_PRIVATE_KEY }}
+    - name: Write EC2 private key locally
+      run: echo "$AWS_EC2_PRIVATE_KEY" > ./ec2-key.pem && chmod 600 ./ec2-key.pem
+      env:
+        AWS_EC2_PRIVATE_KEY: ${{ secrets.AWS_EC2_PRIVATE_KEY }}
 
-#     # - name: Check for DB EC2 SSH is ready
-#     #   run: |
-#     #     for i in {1..30}; do
-#     #       if ssh -o StrictHostKeyChecking=no -i ./ec2-key.pem ubuntu@${{ steps.db_get_ip.outputs.db_public_ip }} exit 2>/dev/null; then
-#     #         echo "SSH is ready for DB"
-#     #         break
-#     #       fi
-#     #       echo "Waiting for SSH to DB... ($i)"
-#     #       sleep 5
-#     #     done
+    # - name: Check for DB EC2 SSH is ready
+    #   run: |
+    #     for i in {1..30}; do
+    #       if ssh -o StrictHostKeyChecking=no -i ./ec2-key.pem ubuntu@${{ steps.db_get_ip.outputs.db_public_ip }} exit 2>/dev/null; then
+    #         echo "SSH is ready for DB"
+    #         break
+    #       fi
+    #       echo "Waiting for SSH to DB... ($i)"
+    #       sleep 5
+    #     done
 
-#     - name: Check for web EC2 SSH is ready
-#       run: |
-#         for i in {1..30}; do
-#           if ssh -o StrictHostKeyChecking=no -i ./ec2-key.pem ubuntu@${{ steps.web_get_ip.outputs.web_public_ip }} exit 2>/dev/null; then
-#             echo "SSH is ready for Web"
-#             break
-#           fi
-#           echo "Waiting for SSH to Web... ($i)"
-#           sleep 5
-#         done
+    - name: Check for web EC2 SSH is ready
+      run: |
+        for i in {1..30}; do
+          if ssh -o StrictHostKeyChecking=no -i ./ec2-key.pem ubuntu@${{ steps.web_get_ip.outputs.web_public_ip }} exit 2>/dev/null; then
+            echo "SSH is ready for Web"
+            break
+          fi
+          echo "Waiting for SSH to Web... ($i)"
+          sleep 5
+        done
 
-#     # - name: Run DB customization
-#     #   run: |
-#     #     ansible-playbook -i "${{ steps.db_get_ip.outputs.db_public_ip }}," image-db.yml \
-#     #     -u ubuntu --private-key ec2-key.pem \
-#     #     --extra-vars "version=$VERSION" \
-#     #     --extra-vars "MYSQL_DEMO_USER=$MYSQL_DEMO_USER" \
-#     #     --extra-vars "MYSQL_DEMO_PASSWORD=$MYSQL_DEMO_PASSWORD" \
-#     #     --extra-vars "MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD"
-#     #   env:
-#     #     MYSQL_DEMO_USER: ${{ secrets.MYSQL_DEMO_USER }}
-#     #     MYSQL_DEMO_PASSWORD: ${{ secrets.MYSQL_DEMO_PASSWORD }}
-#     #     MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+    # - name: Run DB customization
+    #   run: |
+    #     ansible-playbook -i "${{ steps.db_get_ip.outputs.db_public_ip }}," image-db.yml \
+    #     -u ubuntu --private-key ec2-key.pem \
+    #     --extra-vars "version=$VERSION" \
+    #     --extra-vars "MYSQL_DEMO_USER=$MYSQL_DEMO_USER" \
+    #     --extra-vars "MYSQL_DEMO_PASSWORD=$MYSQL_DEMO_PASSWORD" \
+    #     --extra-vars "MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD"
+    #   env:
+    #     MYSQL_DEMO_USER: ${{ secrets.MYSQL_DEMO_USER }}
+    #     MYSQL_DEMO_PASSWORD: ${{ secrets.MYSQL_DEMO_PASSWORD }}
+    #     MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
 
-#     - name: Run web customization
-#       run: |
-#         ansible-playbook -i "${{ steps.web_get_ip.outputs.web_public_ip }}," image-web.yml \
-#         -u ubuntu --private-key ec2-key.pem \
-#         --extra-vars "version=$VERSION"
+    - name: Run web customization
+      run: |
+        ansible-playbook -i "${{ steps.web_get_ip.outputs.web_public_ip }}," image-web.yml \
+        -u ubuntu --private-key ec2-key.pem \
+        --extra-vars "version=$VERSION"
 
-#     # - name: Delete DB AMI if it exists
-#     #   run: | 
-#     #     echo "Looking up AMI with name: $AMI_NAME"
-#     #     AMI_ID=$(aws ec2 describe-images \
-#     #       --owners self \
-#     #       --filters "Name=name,Values=$AMI_NAME" \
-#     #       --query 'Images[0].ImageId' \
-#     #       --output text 2>/dev/null)
+    # - name: Delete DB AMI if it exists
+    #   run: | 
+    #     echo "Looking up AMI with name: $AMI_NAME"
+    #     AMI_ID=$(aws ec2 describe-images \
+    #       --owners self \
+    #       --filters "Name=name,Values=$AMI_NAME" \
+    #       --query 'Images[0].ImageId' \
+    #       --output text 2>/dev/null)
 
-#     #     if [ "$AMI_ID" != "None" ]; then
-#     #       echo "Found AMI: $AMI_ID — deregistering..."
-#     #       aws ec2 deregister-image --image-id "$AMI_ID"
+    #     if [ "$AMI_ID" != "None" ]; then
+    #       echo "Found AMI: $AMI_ID — deregistering..."
+    #       aws ec2 deregister-image --image-id "$AMI_ID"
 
-#     #       echo "Looking up associated snapshots..."
-#     #       SNAPSHOT_IDS=$(aws ec2 describe-images \
-#     #         --image-ids "$AMI_ID" \
-#     #         --query 'Images[0].BlockDeviceMappings[*].Ebs.SnapshotId' \
-#     #         --output text)
+    #       echo "Looking up associated snapshots..."
+    #       SNAPSHOT_IDS=$(aws ec2 describe-images \
+    #         --image-ids "$AMI_ID" \
+    #         --query 'Images[0].BlockDeviceMappings[*].Ebs.SnapshotId' \
+    #         --output text)
 
-#     #       for SNAPSHOT_ID in $SNAPSHOT_IDS; do
-#     #         echo "Deleting snapshot: $SNAPSHOT_ID"
-#     #         aws ec2 delete-snapshot --snapshot-id "$SNAPSHOT_ID"
-#     #       done
-#     #     else
-#     #       echo "No AMI found with name: $AMI_NAME"
-#     #     fi
+    #       for SNAPSHOT_ID in $SNAPSHOT_IDS; do
+    #         echo "Deleting snapshot: $SNAPSHOT_ID"
+    #         aws ec2 delete-snapshot --snapshot-id "$SNAPSHOT_ID"
+    #       done
+    #     else
+    #       echo "No AMI found with name: $AMI_NAME"
+    #     fi
 
-#     #   env:
-#     #       AMI_NAME: snapshot-demo-db-${{ needs.create-golden-image.outputs.base_ami_name_part }}
+    #   env:
+    #       AMI_NAME: snapshot-demo-db-${{ needs.create-golden-image.outputs.base_ami_name_part }}
 
-#     # - name: Delete web AMI if it exists
-#     #   run: | 
-#     #     echo "Looking up AMI with name: $AMI_NAME"
-#     #     AMI_ID=$(aws ec2 describe-images \
-#     #       --owners self \
-#     #       --filters "Name=name,Values=$AMI_NAME" \
-#     #       --query 'Images[0].ImageId' \
-#     #       --output text 2>/dev/null)
+    # - name: Delete web AMI if it exists
+    #   run: | 
+    #     echo "Looking up AMI with name: $AMI_NAME"
+    #     AMI_ID=$(aws ec2 describe-images \
+    #       --owners self \
+    #       --filters "Name=name,Values=$AMI_NAME" \
+    #       --query 'Images[0].ImageId' \
+    #       --output text 2>/dev/null)
 
-#     #     if [ "$AMI_ID" != "None" ]; then
-#     #       echo "Found AMI: $AMI_ID — deregistering..."
-#     #       aws ec2 deregister-image --image-id "$AMI_ID"
+    #     if [ "$AMI_ID" != "None" ]; then
+    #       echo "Found AMI: $AMI_ID — deregistering..."
+    #       aws ec2 deregister-image --image-id "$AMI_ID"
 
-#     #       echo "Looking up associated snapshots..."
-#     #       SNAPSHOT_IDS=$(aws ec2 describe-images \
-#     #         --image-ids "$AMI_ID" \
-#     #         --query 'Images[0].BlockDeviceMappings[*].Ebs.SnapshotId' \
-#     #         --output text)
+    #       echo "Looking up associated snapshots..."
+    #       SNAPSHOT_IDS=$(aws ec2 describe-images \
+    #         --image-ids "$AMI_ID" \
+    #         --query 'Images[0].BlockDeviceMappings[*].Ebs.SnapshotId' \
+    #         --output text)
 
-#     #       for SNAPSHOT_ID in $SNAPSHOT_IDS; do
-#     #         echo "Deleting snapshot: $SNAPSHOT_ID"
-#     #         aws ec2 delete-snapshot --snapshot-id "$SNAPSHOT_ID"
-#     #       done
-#     #     else
-#     #       echo "No AMI found with name: $AMI_NAME"
-#     #     fi
+    #       for SNAPSHOT_ID in $SNAPSHOT_IDS; do
+    #         echo "Deleting snapshot: $SNAPSHOT_ID"
+    #         aws ec2 delete-snapshot --snapshot-id "$SNAPSHOT_ID"
+    #       done
+    #     else
+    #       echo "No AMI found with name: $AMI_NAME"
+    #     fi
 
-#     #   env:
-#     #       AMI_NAME: snapshot-demo-web-${{ needs.create-golden-image.outputs.base_ami_name_part }}
+    #   env:
+    #       AMI_NAME: snapshot-demo-web-${{ needs.create-golden-image.outputs.base_ami_name_part }}
 
-#     # - name: Create DB AMI
-#     #   id: db_create_ami
-#     #   run: |
-#     #     ec2_id=${{ steps.db_ec2_launch.outputs.db_ec2_id }}
-#     #     echo "Creating db AMI from instance: $ec2_id"
-#     #     AMI_ID=$(aws ec2 create-image \
-#     #       --instance-id "$ec2_id" \
-#     #       --name "ami-demo-db-${{ needs.create-golden-image.outputs.base_ami_name_part }}" \
-#     #       --no-reboot \
-#     #       --query 'ImageId' \
-#     #       --output text)
+    # - name: Create DB AMI
+    #   id: db_create_ami
+    #   run: |
+    #     ec2_id=${{ steps.db_ec2_launch.outputs.db_ec2_id }}
+    #     echo "Creating db AMI from instance: $ec2_id"
+    #     AMI_ID=$(aws ec2 create-image \
+    #       --instance-id "$ec2_id" \
+    #       --name "ami-demo-db-${{ needs.create-golden-image.outputs.base_ami_name_part }}" \
+    #       --no-reboot \
+    #       --query 'ImageId' \
+    #       --output text)
 
-#     #     aws ec2 create-tags \
-#     #       --resources "$AMI_ID" \
-#     #       --tags \
-#     #       Key=Name,Value="snapshot-demo-db-${{ needs.create-golden-image.outputs.base_ami_name_part }}" \
-#     #       Key=CreatedBy,Value="Goldsmith pipeline" \
-#     #       Key=Environment,Value="Prod"
+    #     aws ec2 create-tags \
+    #       --resources "$AMI_ID" \
+    #       --tags \
+    #       Key=Name,Value="snapshot-demo-db-${{ needs.create-golden-image.outputs.base_ami_name_part }}" \
+    #       Key=CreatedBy,Value="Goldsmith pipeline" \
+    #       Key=Environment,Value="Prod"
 
-#     #     echo "DB AMI created: $AMI_ID"
-#     #     echo "db_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
-# # -------------------------------------------------------------------------------------------
-#     - name: Create web AMI
-#       id: web_create_ami
-#       run: |
-#         ec2_id=${{ steps.web_ec2_launch.outputs.web_ec2_id }}
-#         base_name_part=${{ needs.create-golden-image.outputs.base_ami_name_part }}
+    #     echo "DB AMI created: $AMI_ID"
+    #     echo "db_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
+# -------------------------------------------------------------------------------------------
+    - name: Create web AMI
+      id: web_create_ami
+      run: |
+        ec2_id=${{ steps.web_ec2_launch.outputs.web_ec2_id }}
+        base_name_part=${{ needs.create-golden-image.outputs.base_ami_name_part }}
 
-#         echo "Creating AMI 'ami-demo-web-${base_name_part}' from instance: $ec2_id"
-#         AMI_ID=$(aws ec2 create-image \
-#           --instance-id "$ec2_id" \
-#           --name "ami-demo-web-${base_name_part}" \
-#           --no-reboot \
-#           --query 'ImageId' \
-#           --output text)
+        echo "Creating AMI 'ami-demo-web-${base_name_part}' from instance: $ec2_id"
+        AMI_ID=$(aws ec2 create-image \
+          --instance-id "$ec2_id" \
+          --name "ami-demo-web-${base_name_part}" \
+          --no-reboot \
+          --query 'ImageId' \
+          --output text)
 
-#         echo "Tagging AMI snapshot..."
-#         # Wait for the snapshot to be created (can optionally add polling logic)
-#         sleep 10
+        echo "Tagging AMI snapshot..."
+        # Wait for the snapshot to be created (can optionally add polling logic)
+        sleep 10
 
-#         SNAPSHOT_ID=$(aws ec2 describe-images \
-#           --image-ids "$AMI_ID" \
-#           --query "Images[0].BlockDeviceMappings[0].Ebs.SnapshotId" \
-#           --output text)
+        SNAPSHOT_ID=$(aws ec2 describe-images \
+          --image-ids "$AMI_ID" \
+          --query "Images[0].BlockDeviceMappings[0].Ebs.SnapshotId" \
+          --output text)
 
-#         aws ec2 create-tags \
-#           --resources "$SNAPSHOT_ID" \
-#           --tags Key=Name,Value="snapshot-demo-web-${base_name_part}"
+        aws ec2 create-tags \
+          --resources "$SNAPSHOT_ID" \
+          --tags Key=Name,Value="snapshot-demo-web-${base_name_part}"
 
-#         echo "web_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
+        echo "web_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
         
-#     - name: Display AMI IDs
-#       run: |
-#         # echo "DB AMI: ${{ steps.db_create_ami.outputs.db_ami_id }}"
-#         echo "Web AMI: ${{ steps.web_create_ami.outputs.web_ami_id }}"
+    - name: Display AMI IDs
+      run: |
+        # echo "DB AMI: ${{ steps.db_create_ami.outputs.db_ami_id }}"
+        echo "Web AMI: ${{ steps.web_create_ami.outputs.web_ami_id }}"
 
-#     # - name: Terminate DB EC2 instance
-#     #   if: always() # Ensures termination even if previous steps fail
-#     #   run: |
-#     #     aws ec2 terminate-instances --instance-ids ${{ steps.db_ec2_launch.outputs.db_ec2_id }}
+    # - name: Terminate DB EC2 instance
+    #   if: always() # Ensures termination even if previous steps fail
+    #   run: |
+    #     aws ec2 terminate-instances --instance-ids ${{ steps.db_ec2_launch.outputs.db_ec2_id }}
 
-#     - name: Terminate web EC2 instance
-#       if: always() # Ensures termination even if previous steps fail
-#       run: |
-#         aws ec2 terminate-instances --instance-ids ${{ steps.web_ec2_launch.outputs.web_ec2_id }}
+    - name: Terminate web EC2 instance
+      if: always() # Ensures termination even if previous steps fail
+      run: |
+        aws ec2 terminate-instances --instance-ids ${{ steps.web_ec2_launch.outputs.web_ec2_id }}
 
 # # -------------------------------------------------------------------------------------------
 # # -------------------------------------------------------------------------------------------
