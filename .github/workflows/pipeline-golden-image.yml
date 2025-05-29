@@ -29,9 +29,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: Prod
     outputs:
-      base_ami_id: "ami-demo-base-v20250529.14" # ${{ steps.base_build.outputs.base_ami_id }}
-      base_ami_name: "ami-demo-base-v20250529.14" # "snapshot-demo-base-v20250526.1" ${{ steps.get_base_ami_name.outputs.base_ami_name }}
-      base_ami_name_part: ${{ steps.split_ami_name.outputs.base_ami_name_part }} # "v20250526.1" ${{ steps.split_ami_name.outputs.base_ami_name_part }}
+      base_ami_id: ${{ steps.base_build.outputs.base_ami_id }}
+      base_ami_name: ${{ steps.get_base_ami_name.outputs.base_ami_name }}
+      base_ami_name_part: ${{ steps.split_ami_name.outputs.base_ami_name_part }}
 
     steps:
     - name: Checkout
@@ -43,34 +43,43 @@ jobs:
         role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
         aws-region: ${{ vars.AWS_REGION }}
 # ---------------------------------------------//----------------------------------------------
-    # - name: Install Packer
-    #   uses: hashicorp/setup-packer@v2
-    #   with:
-    #     version: 'latest'
+    - name: Install Packer
+      uses: hashicorp/setup-packer@v2
+      with:
+        version: 'latest'
 
-    # - name: Initialize Packer
-    #   run: packer init image-base.pkr.hcl
+    - name: Initialize Packer
+      run: packer init image-base.pkr.hcl
 
-    # - name: Validate Packer template
-    #   run: |
-    #     packer validate -var "aws_region=${{ vars.AWS_REGION }}" -var "version=" image-base.pkr.hcl
+    - name: Validate Packer template
+      run: |
+        packer validate -var "aws_region=${{ vars.AWS_REGION }}" -var "version=" image-base.pkr.hcl
 
-    # - name: Build and customize base AMI
-    #   id: base_build
-    #   run: |
-    #       RUN_NUM=${GITHUB_RUN_NUMBER}
-    #       TIMESTAMP=$(date -u +%Y%m%d)
-    #       version="v${TIMESTAMP}.${RUN_NUM}"
-    #       echo "Running Packer build to create version $version ..."
-    #       packer build -var "aws_region=${{ vars.AWS_REGION }}" -var "version=$version" -machine-readable image-base.pkr.hcl | tee packer_output.log
-    #       echo "Extracting AMI ID from output..."
-    #       AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
-    #       echo "base_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
+    - name: Build and customize base AMI
+      id: base_build
+      run: |
+          RUN_NUM=${GITHUB_RUN_NUMBER}
+          TIMESTAMP=$(date -u +%Y%m%d)
+          version="v${TIMESTAMP}.${RUN_NUM}"
+          echo "Running Packer build to create version $version ..."
+          packer build -var "aws_region=${{ vars.AWS_REGION }}" -var "version=$version" -machine-readable image-base.pkr.hcl | tee packer_output.log
+          echo "Extracting AMI ID from output..."
+          AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
+          echo "base_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
+
+    # ${{ steps.get_base_ami_name.outputs.base_ami_name }}
+    - name: Extract last part from AMI name part
+      id: split_ami_name
+      run: |
+        base_ami_name="ami-demo-base-v20250529.14" 
+        base_ami_name_part=$(echo "$base_ami_name" | awk -F '-' '{print $NF}')
+        echo $base_ami_name_part
+        echo "base_ami_name_part=$base_ami_name_part" >> $GITHUB_OUTPUT
 
     - name: Set snapshot name
       run: |
-        AMI_ID="ami-08b259ec9e83d2890"
-        SNAPSHOT_NAME="snapshot-demo-base-v20250529.14"
+        AMI_ID="${{ steps.base_build.outputs.base_ami_id }}"
+        SNAPSHOT_NAME="snapshot-demo-base-${{ steps.split_ami_name.outputs.base_ami_name_part }}"
 
         # Get the snapshot ID from the AMI
         SNAPSHOT_ID=$(aws ec2 describe-images \
@@ -89,7 +98,7 @@ jobs:
 
 
 
-# # ${{ steps.base_build.outputs.base_ami_id }}
+# # 
 #     - name: Set base AMI name
 #       run: |
 #         AMI_ID="ami-08b259ec9e83d2890" 
@@ -102,14 +111,6 @@ jobs:
 #           Key=Environment,Value="Prod"
 
 
-    # ${{ steps.get_base_ami_name.outputs.base_ami_name }}
-    - name: Extract last part from AMI name part
-      id: split_ami_name
-      run: |
-        base_ami_name="ami-demo-base-v20250529.14" 
-        base_ami_name_part=$(echo "$base_ami_name" | awk -F '-' '{print $NF}')
-        echo $base_ami_name_part
-        echo "base_ami_name_part=$base_ami_name_part" >> $GITHUB_OUTPUT
 
 # -------------------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------------------
