@@ -441,7 +441,7 @@ jobs:
       run: |
         terraform init
         terraform apply -auto-approve \
-          -var="ami_id=$AMI_ID" \
+          -var="ami_id=${{ needs.create-role-image.outputs.web_ami_id }}" \
           -var="instance_type=$INSTANCE_TYPE" \
           -var="key_name=$KEY_NAME" \
           -var="security_group=$SECURITY_GROUP" \
