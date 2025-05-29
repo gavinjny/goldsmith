@@ -30,7 +30,6 @@ jobs:
     environment: Prod
     outputs:
       base_ami_id: ${{ steps.base_build.outputs.base_ami_id }}
-      base_ami_name: ${{ steps.get_base_ami_name.outputs.base_ami_name }}
       base_ami_name_part: ${{ steps.split_ami_name.outputs.base_ami_name_part }}
 
     steps:
@@ -67,11 +66,17 @@ jobs:
           AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
           echo "base_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
 
-    # ${{ steps.get_base_ami_name.outputs.base_ami_name }}
     - name: Extract last part from AMI name part
       id: split_ami_name
       run: |
-        base_ami_name="ami-demo-base-v20250529.14" 
+        AMI_ID="${{ steps.base_build.outputs.base_ami_id }}"
+
+        AMI_NAME=$(aws ec2 describe-images \
+          --image-ids "$AMI_ID" \
+          --query 'Images[0].Name' \
+          --output text)
+
+        base_ami_name="$AMI_NAME" 
         base_ami_name_part=$(echo "$base_ami_name" | awk -F '-' '{print $NF}')
         echo $base_ami_name_part
         echo "base_ami_name_part=$base_ami_name_part" >> $GITHUB_OUTPUT
