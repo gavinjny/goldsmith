@@ -12,21 +12,21 @@ permissions:
   # VERSION: "1.7.8.11" # 1.7.8.11/8.2.1 
 
 jobs:
-  # reset-aws:
-  #   name: Reset AWS objects
-  #   uses: ./.github/workflows/pipeline-drop-aws.yml
-  #   secrets: inherit
+  reset-aws:
+    name: Reset AWS objects
+    uses: ./.github/workflows/pipeline-drop-aws.yml
+    secrets: inherit
 # -------------------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------------------
   create-golden-image:
     name: Create base image
-    # steps: reset-aws
+    needs: reset-aws
     runs-on: ubuntu-latest
     environment: Prod
     outputs:
-      base_ami_id: "ami-0caf48451cb6750de"
-      base_ami_name: "snapshot-demo-base-v20250526.1"
-      base_ami_namepart: "v20250526.1"
+      base_ami_id: ${{ steps.packerbuild.outputs.base_ami_id }} # "ami-0caf48451cb6750de" ${{ steps.packerbuild.outputs.base_ami_id }}
+      base_ami_name: ${{ steps.get_base_ami_name.outputs.base_ami_name }} # "snapshot-demo-base-v20250526.1" ${{ steps.get_base_ami_name.outputs.base_ami_name }}
+      base_ami_namepart: ${{ steps.split_ami_name.outputs.base_ami_namepart }} # "v20250526.1" ${{ steps.split_ami_name.outputs.base_ami_namepart }}
 
     steps:
     - name: Checkout
@@ -37,51 +37,51 @@ jobs:
       with:
         role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
         aws-region: ${{ vars.AWS_REGION }}
+# ---------------------------------------------//----------------------------------------------
+    - name: Install Packer
+      uses: hashicorp/setup-packer@v2
+      with:
+        version: 'latest'
 
-    # - name: Install Packer
-    #   uses: hashicorp/setup-packer@v2
-    #   with:
-    #     version: 'latest'
+    - name: Initialize Packer
+      run: packer init image-base.pkr.hcl
 
-    # - name: Initialize Packer
-    #   run: packer init image-base.pkr.hcl
+    - name: Validate Packer template
+      run: |
+        packer validate -var "aws_region=${{ vars.AWS_REGION }}" -var "version=" image-base.pkr.hcl
 
-    # - name: Validate Packer template
-    #   run: |
-    #     packer validate -var "aws_region=${{ vars.AWS_REGION }}" -var "version=" image-base.pkr.hcl
+    - name: Build and customize base AMI
+      id: packerbuild
+      run: |
+          RUN_NUM=${GITHUB_RUN_NUMBER}
+          TIMESTAMP=$(date -u +%Y%m%d)
+          version="v${TIMESTAMP}.${RUN_NUM}"
+          echo "Running Packer build to create version $version ..."
+          packer build -var "aws_region=${{ vars.AWS_REGION }}" -var "version=$version" -machine-readable image-base.pkr.hcl | tee packer_output.log
+          echo "Extracting AMI ID from output..."
+          AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
 
-    # - name: Build and customize base AMI
-    #   id: packerbuild
-    #   run: |
-    #       RUN_NUM=${GITHUB_RUN_NUMBER}
-    #       TIMESTAMP=$(date -u +%Y%m%d)
-    #       version="v${TIMESTAMP}.${RUN_NUM}"
-    #       echo "Running Packer build to create version $version ..."
-    #       packer build -var "aws_region=${{ vars.AWS_REGION }}" -var "version=$version" -machine-readable image-base.pkr.hcl | tee packer_output.log
-    #       echo "Extracting AMI ID from output..."
-    #       AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
+    - name: Get base AMI name
+      id: get_base_ami_name
+      run: |
+        AMI_ID=${{ steps.packerbuild.outputs.base_ami_id }}
 
-    # - name: Get base AMI name
-    #   id: get_base_ami_name
-    #   run: |
-    #     AMI_ID=${{ steps.packerbuild.outputs.base_ami_id }}
+        echo "Looking up AMI Name for: $AMI_ID"
+        AMI_NAME=$(aws ec2 describe-images \
+          --image-ids "$AMI_ID" \
+          --query 'Images[0].Name' \
+          --output text)
 
-    #     echo "Looking up AMI Name for: $AMI_ID"
-    #     AMI_NAME=$(aws ec2 describe-images \
-    #       --image-ids "$AMI_ID" \
-    #       --query 'Images[0].Name' \
-    #       --output text)
+        echo "AMI Name: $AMI_NAME"
+        echo "base_ami_name=$AMI_NAME" >> $GITHUB_OUTPUT
 
-    #     echo "AMI Name: $AMI_NAME"
-    #     echo "base_ami_name=$AMI_NAME" >> $GITHUB_OUTPUT
-
-    # - name: Extract last part from AMI name part
-    #   id: split_ami_name
-    #   run: |
-    #     base_ami_name="${{ steps.get_base_ami_name.outputs.base_ami_name }}"
-    #     base_ami_namepart=$(echo "$base_ami_name" | awk -F '-' '{print $NF}')
-    #     echo $base_ami_namepart
-    #     echo "base_ami_namepart=$base_ami_namepart" >> $GITHUB_OUTPUT
+    - name: Extract last part from AMI name part
+      id: split_ami_name
+      run: |
+        base_ami_name="${{ steps.get_base_ami_name.outputs.base_ami_name }}"
+        base_ami_namepart=$(echo "$base_ami_name" | awk -F '-' '{print $NF}')
+        echo $base_ami_namepart
+        echo "base_ami_namepart=$base_ami_namepart" >> $GITHUB_OUTPUT
 
 # -------------------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------------------
@@ -376,7 +376,7 @@ jobs:
 
     #     echo "DB AMI created: $AMI_ID"
     #     echo "db_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
-
+# -------------------------------------------------------------------------------------------
     - name: Create web AMI
       id: web_create_ami
       run: |

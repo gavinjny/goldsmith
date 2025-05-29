@@ -1,4 +1,4 @@
-name: Drop Storefront infrastucture
+name: Drop demo infrastucture
 
 on:
   workflow_call:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   deploy:
-    name: Reset AWS Storefront Objects
+    name: Reset AWS demo Objects
     runs-on: ubuntu-latest
     environment: Prod
 
@@ -27,7 +27,7 @@ jobs:
     - name: Terminate EC2 instances
       run: |
         INSTANCE_IDS=$(aws ec2 describe-instances \
-          --filters "Name=tag:Name,Values=*storefront*" "Name=instance-state-name,Values=running,stopped" \
+          --filters "Name=tag:Name,Values=*demo*" "Name=instance-state-name,Values=running,stopped" \
           --query "Reservations[].Instances[].InstanceId" \
           --output text)
 
@@ -35,13 +35,13 @@ jobs:
           aws ec2 terminate-instances --instance-ids $INSTANCE_IDS
           echo "Terminated EC2 instances: $INSTANCE_IDS"
         else
-          echo "No EC2 instances found with 'storefront' in the name."
+          echo "No EC2 instances found with 'demo' in the name."
         fi
 
     - name: Delete ALBs/NLBs
       run: |
         ELB_ARNS=$(aws elbv2 describe-load-balancers \
-          --query "LoadBalancers[?contains(LoadBalancerName, 'storefront')].LoadBalancerArn" \
+          --query "LoadBalancers[?contains(LoadBalancerName, 'demo')].LoadBalancerArn" \
           --output text)
 
         for arn in $ELB_ARNS; do
@@ -52,7 +52,7 @@ jobs:
     - name: Delete snapshots
       run: |
         DASHBOARDS=$(aws cloudwatch list-dashboards \
-          --query "DashboardEntries[?contains(DashboardName, 'storefront')].DashboardName" \
+          --query "DashboardEntries[?contains(DashboardName, 'demo')].DashboardName" \
           --output text)
 
         for name in $DASHBOARDS; do
@@ -64,11 +64,11 @@ jobs:
       run: |
         AMI_IDS=$(aws ec2 describe-images \
           --owners self \
-          --query "Images[?contains(Name, 'storefront')].ImageId" \
+          --query "Images[?contains(Name, 'demo')].ImageId" \
           --output text)
 
         if [ -z "$AMI_IDS" ]; then
-          echo "No AMIs found with 'storefront' in the name."
+          echo "No AMIs found with 'demo' in the name."
           exit 0
         fi
 
