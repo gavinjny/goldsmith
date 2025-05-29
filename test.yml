@@ -62,12 +62,12 @@
       ignore_errors: true # Be cautious with ignoring errors in production.
 
     - name: Create .my.cnf for root user to automate MySQL commands
-      ansible.builtin.template:
-        src: templates/my.cnf.j2 # Assumes you have this template
-        dest: "/root/.my.cnf"
-        owner: root
-        group: root
-        mode: '0600'
+      # ansible.builtin.template:
+      #   src: templates/my.cnf.j2 # Assumes you have this template
+      #   dest: "/root/.my.cnf"
+      #   owner: root
+      #   group: root
+      #   mode: '0600'
       vars:
         db_user_template: "{{ DB_ROOT_USER }}"
         db_password_template: "{{ MYSQL_ROOT_PASSWORD }}"
