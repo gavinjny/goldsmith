@@ -357,7 +357,6 @@ jobs:
       env:
           AMI_NAME: snapshot-storefront-web-${{ needs.create-golden-image.outputs.base_ami_namepart }}
 
-
     - name: Create DB AMI
       id: db_create_ami
       run: |

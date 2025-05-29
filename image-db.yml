@@ -6,7 +6,7 @@
   become: true
   tasks:
 # ----------------------------INSTALL DB SERVER----------------------------------
-    - name: Install MySQL Server on Ubuntu
+    - name: Install MySQL Server
       apt:
         name: mysql-server
         state: present
@@ -28,24 +28,25 @@
       command: snap start amazon-ssm-agent
 
 # ----------------------------INSTALL PRESTASHOP DB----------------------------------
-    - name: Install Python MySQL client (PyMySQL)
-      become: true
+    - name: Install Python MySQL client
       apt:
         name: python3-pymysql
         state: present
         update_cache: yes
 
-    # - name: Create PrestaShop database
-    #   mysql_db:
-    #     name: "storefront"
-    #     state: present
+    - name: Create PrestaShop DB user
+      community.mysql.mysql_user:
+        name: "{{ MYSQL_STOREFRONT_USER }}"
+        password: "{{ MYSQL_STOREFRONT_PASSWORD }}"
+        priv: "storefront.*:ALL"
+        state: present
+        login_user: root
+
     - name: Create PrestaShop database
       community.mysql.mysql_db:
         name: storefront
         state: present
-        login_user: "{{ MYSQL_STOREFRONT_USER }}"
-        login_password: "{{ MYSQL_STOREFRONT_PASSWORD }}"
-        login_host: localhost
+        login_user: root
 
     - name: Download PrestaShop
       get_url:
