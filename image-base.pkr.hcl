@@ -36,11 +36,11 @@ source "amazon-ebs" "ubuntu" {
     most_recent = true
   }
 
-  # tags = {
-  #   Name        = "ami-demo-base-${var.version}"
-  #   CreatedBy   = "Goldsmith pipeline"
-  #   Environment = "Prod"
-  # }
+  tags = {
+    Name        = "ami-demo-base-${var.version}"
+    CreatedBy   = "Goldsmith pipeline"
+    Environment = "Prod"
+  }
 }
 
 build {

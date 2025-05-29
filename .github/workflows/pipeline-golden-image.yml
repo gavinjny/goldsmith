@@ -67,17 +67,39 @@ jobs:
     #       AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
     #       echo "base_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
 
-# ${{ steps.base_build.outputs.base_ami_id }}
-    - name: Set base AMI name
+    - name: Set snapshot name
       run: |
-        AMI_ID="ami-demo-base-v20250529.14" 
+        AMI_ID="ami-08b259ec9e83d2890"
+        SNAPSHOT_NAME="snapshot-demo-base-v20250529.14"
 
+        # Get the snapshot ID from the AMI
+        SNAPSHOT_ID=$(aws ec2 describe-images \
+          --image-ids "$AMI_ID" \
+          --query "Images[0].BlockDeviceMappings[0].Ebs.SnapshotId" \
+          --output text)
+
+        echo "Found snapshot ID: $SNAPSHOT_ID"
+
+        # Tag the snapshot
         aws ec2 create-tags \
-        --resources "$AMI_ID" \
-        --tags \
-          Key=Name,Value="$AMI_ID" \
-          Key=CreatedBy,Value="GoldSmith pipeline" \
-          Key=Environment,Value="Prod"
+          --resources "$SNAPSHOT_ID" \
+          --tags Key=Name,Value="$SNAPSHOT_NAME"
+
+
+
+
+
+# # ${{ steps.base_build.outputs.base_ami_id }}
+#     - name: Set base AMI name
+#       run: |
+#         AMI_ID="ami-08b259ec9e83d2890" 
+
+#         aws ec2 create-tags \
+#         --resources "$AMI_ID" \
+#         --tags \
+#           Key=Name,Value="$AMI_ID" \
+#           Key=CreatedBy,Value="GoldSmith pipeline" \
+#           Key=Environment,Value="Prod"
 
 
     # ${{ steps.get_base_ami_name.outputs.base_ami_name }}
