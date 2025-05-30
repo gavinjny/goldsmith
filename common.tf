@@ -7,6 +7,6 @@ variable "aws_region" {}
 variable "vpc" {}
 variable "subnet" {}
 
-provider "aws" {
-  region = var.aws_region
-}
+# provider "aws" {
+#   region = var.aws_region
+# }
