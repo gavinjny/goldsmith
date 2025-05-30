@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       golden_image_source:
-        description: 'Build new role image based on'
+        description: 'Update Prod servers based on'
         required: true
         default: 'last good base image'
         type: choice
@@ -492,7 +492,6 @@ jobs:
           -var="aws_region=$AWS_REGION" \
           -var="vpc=$VPC"
           -subnet="$SUBNET"
-        terraform destroy
 
       env:
         AMD_ID: ${{ needs.create-role-image.outputs.web_ami_id }}
