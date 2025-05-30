@@ -479,6 +479,29 @@ jobs:
       with:
         terraform_version: latest
 
+
+    - name: Wait for AMI to become available
+      run: |
+        AMI_ID="${{ needs.create-role-image.outputs.web_ami_id }}"
+        MAX_RETRIES=30
+        SLEEP_SECONDS=10
+
+        for i in $(seq 1 $MAX_RETRIES); do
+          STATE=$(aws ec2 describe-images --image-ids "$AMI_ID" --query "Images[0].State" --output text)
+          echo "AMI state: $STATE"
+
+          if [ "$STATE" = "available" ]; then
+            exit 0
+          elif [ "$STATE" = "failed" ]; then
+            exit 1
+          else
+            sleep $SLEEP_SECONDS
+          fi
+        done
+
+        exit 1
+
+
         #           -var="iam_instance_profile=$IAM_INSTANCE" \
     - name: Setup web ASG and ALB
       run: |
