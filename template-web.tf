@@ -1,3 +1,8 @@
+# var.aws_region
+provider "aws" {
+  region = "us-west-2"
+}
+
 resource "aws_instance" "test" {
   ami                    = var.ami_id
   instance_type          = var.instance_type
