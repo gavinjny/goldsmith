@@ -187,7 +187,7 @@ jobs:
 # # -------------------------------------------------------------------------------------------
 # # -------------------------------------------------------------------------------------------
   create-role-image:
-    name: Create and customize role images
+    name: Create role images
     needs: [create-golden-image,test-base-image]
     runs-on: ubuntu-latest
     environment: Prod
@@ -456,70 +456,70 @@ jobs:
       run: |
         aws ec2 terminate-instances --instance-ids ${{ steps.web_ec2_launch.outputs.web_ec2_id }}
 
+# -------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
+  distribute-image:
+    name: Distribute golden image
+    needs: [create-golden-image,create-role-image,create-role-image]
+    runs-on: ubuntu-latest
+    environment: Prod
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+        aws-region: ${{ vars.AWS_REGION }}
+
+    - name: Install Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: latest
+
+    - name: Setup web ASG and ALB
+      run: |
+        terraform init
+        terraform plan
+        terraform apply -auto-approve \
+          -var="ami_id=${{ needs.create-role-image.outputs.web_ami_id }}" \
+          -var="instance_type=$INSTANCE_TYPE" \
+          -var="key_name=$KEY_NAME" \
+          -var="security_group=$SECURITY_GROUP" \
+          -var="iam_instance_profile=$IAM_INSTANCE" \
+          -var="aws_region=$AWS_REGION" \
+          -var="vpc=$VPC"
+          -subnet="$SUBNET"
+
+      env:
+        AMD_ID: ${{ needs.create-role-image.outputs.web_ami_id }}
+        INSTANCE_TYPE: "t2.micro"
+        KEY_NAME: ${{ secrets.AWS_KEYNAME }}
+        SECURITY_GROUP: ${{ secrets.AWS_SECURITYGROUP }}
+        IAM_INSTANCE: ${{ secrets.AWS_PIPELINE_ROLE }}
+        AWS_REGION: ${{ vars.AWS_REGION }}
+        VPC: ${{ secrets.AWS_VPC }}
+        SUBNET: ${{ secrets.AWS_SUBNET }}
+
 # # -------------------------------------------------------------------------------------------
 # # -------------------------------------------------------------------------------------------
-#   # distribute-image:
-#   #   name: Distribute golden image
-#   #   needs: [create-golden-image,create-role-image,create-role-image]
-#   #   runs-on: ubuntu-latest
-#   #   environment: Prod
+#   setup-dashboard:
+#     name: Setup dashboard
+#     runs-on: ubuntu-latest
+#     environment: Prod
+#     steps: distribute-image
 
-#   #   steps:
-#   #   - name: Checkout
-#   #     uses: actions/checkout@v4
+#     steps:
+#     - name: Checkout
+#       uses: actions/checkout@v4
 
-#   #   - name: Configure AWS credentials
-#   #     uses: aws-actions/configure-aws-credentials@v2
-#   #     with:
-#   #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
-#   #       aws-region: ${{ vars.AWS_REGION }}
-
-#   #   - name: Install Terraform
-#   #     uses: hashicorp/setup-terraform@v2
-#   #     with:
-#   #       terraform_version: latest
-
-#   #   - name: Setup web ASG and ALB
-#   #     run: |
-#   #       terraform init
-#   #       terraform plan
-#   #       terraform apply -auto-approve \
-#   #         -var="ami_id=${{ needs.create-role-image.outputs.web_ami_id }}" \
-#   #         -var="instance_type=$INSTANCE_TYPE" \
-#   #         -var="key_name=$KEY_NAME" \
-#   #         -var="security_group=$SECURITY_GROUP" \
-#   #         -var="iam_instance_profile=$IAM_INSTANCE" \
-#   #         -var="aws_region=$AWS_REGION" \
-#   #         -var="vpc=$VPC"
-#   #         -subnet="$SUBNET"
-
-#   #     env:
-#   #       AMD_ID: ${{ needs.create-role-image.outputs.web_ami_id }}
-#   #       INSTANCE_TYPE: "t2.micro"
-#   #       KEY_NAME: ${{ secrets.AWS_KEYNAME }}
-#   #       SECURITY_GROUP: ${{ secrets.AWS_SECURITYGROUP }}
-#   #       IAM_INSTANCE: ${{ secrets.AWS_PIPELINE_ROLE }}
-#   #       AWS_REGION: ${{ vars.AWS_REGION }}
-#   #       VPC: ${{ secrets.AWS_VPC }}
-#   #       SUBNET: ${{ secrets.AWS_SUBNET }}
-
-# # -------------------------------------------------------------------------------------------
-# # -------------------------------------------------------------------------------------------
-#   # setup-dashboard:
-#   #   name: Setup dashboard
-#   #   runs-on: ubuntu-latest
-#   #   environment: Prod
-#   #   steps: distribute-image
-
-#   #   steps:
-#   #   - name: Checkout
-#   #     uses: actions/checkout@v4
-
-#   #   - name: Configure AWS credentials
-#   #     uses: aws-actions/configure-aws-credentials@v2
-#   #     with:
-#   #       role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
-#   #       aws-region: ${{ vars.AWS_REGION }}
+#     - name: Configure AWS credentials
+#       uses: aws-actions/configure-aws-credentials@v2
+#       with:
+#         role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+#         aws-region: ${{ vars.AWS_REGION }}
 
 # # -------------------------------------------------------------------------------------------
 # # -------------------------------------------------------------------------------------------
