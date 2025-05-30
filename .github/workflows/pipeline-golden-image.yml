@@ -513,8 +513,8 @@ jobs:
           -var="key_name=$KEY_NAME" \
           -var="security_group=$SECURITY_GROUP" \
           -var="aws_region=$AWS_REGION" \
-          -var="vpc=$VPC"
-          -subnet="$SUBNET"
+          -var="vpc=$VPC" \
+          -var="subnet="$SUBNET"
 
       env:
         AMD_ID: ${{ needs.create-role-image.outputs.web_ami_id }}
