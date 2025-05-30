@@ -68,7 +68,7 @@ jobs:
       if: ${{ github.event.inputs.golden_image_source == 'last good base image' }}
       id: use_existing
       run: |
-        IMAGE_PREFIX="ami-demo-base-"
+        IMAGE_PREFIX="ami-base-demo-"
         AMI_INFO=$(aws ec2 describe-images \
           --owners self \
           --filters "Name=name,Values=${IMAGE_PREFIX}*" \
@@ -96,7 +96,7 @@ jobs:
       if: ${{ github.event.inputs.golden_image_source == 'new base image' }}
       run: |
         AMI_ID="${{ steps.base_build.outputs.base_ami_id }}"
-        SNAPSHOT_NAME="snapshot-demo-base-${{ steps.split_ami_name.outputs.base_ami_name_part }}"
+        SNAPSHOT_NAME="snapshot-base-demo-${{ steps.split_ami_name.outputs.base_ami_name_part }}"
 
         SNAPSHOT_ID=$(aws ec2 describe-images \
           --image-ids "$AMI_ID" \
@@ -349,7 +349,7 @@ jobs:
     #     fi
 
     #   env:
-    #       AMI_NAME: snapshot-demo-db-${{ needs.create-golden-image.outputs.base_ami_name_part }}
+    #       AMI_NAME: snapshot-db-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}
 
     - name: Delete web AMI if it exists
       run: | 
@@ -367,7 +367,7 @@ jobs:
           echo "Looking up associated snapshots..."
           SNAPSHOT_IDS=$(aws ec2 describe-snapshots \
           --owner-ids self \
-          --filters "Name=tag:Name,Values=snapshot-demo-web-${{ needs.create-golden-image.outputs.base_ami_name_part }}" \
+          --filters "Name=tag:Name,Values=snapshot-web-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}" \
           --query "Snapshots[*].SnapshotId" \
           --output text)
 
@@ -380,7 +380,7 @@ jobs:
         fi
 
       env:
-          AMI_NAME: ami-demo-web-${{ needs.create-golden-image.outputs.base_ami_name_part }}
+          AMI_NAME: ami-web-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}
 
     # - name: Create DB AMI
     #   id: db_create_ami
@@ -389,7 +389,7 @@ jobs:
     #     echo "Creating db AMI from instance: $ec2_id"
     #     AMI_ID=$(aws ec2 create-image \
     #       --instance-id "$ec2_id" \
-    #       --name "ami-demo-db-${{ needs.create-golden-image.outputs.base_ami_name_part }}" \
+    #       --name "ami-db-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}" \
     #       --no-reboot \
     #       --query 'ImageId' \
     #       --output text)
@@ -397,7 +397,7 @@ jobs:
     #     aws ec2 create-tags \
     #       --resources "$AMI_ID" \
     #       --tags \
-    #       Key=Name,Value="snapshot-demo-db-${{ needs.create-golden-image.outputs.base_ami_name_part }}" \
+    #       Key=Name,Value="snapshot-db-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}" \
     #       Key=CreatedBy,Value="Goldsmith pipeline" \
     #       Key=Environment,Value="Prod"
 
@@ -409,10 +409,10 @@ jobs:
       run: |
         ec2_id=${{ steps.web_ec2_launch.outputs.web_ec2_id }}
         base_name_part=${{ needs.create-golden-image.outputs.base_ami_name_part }}
-        echo "Creating AMI 'ami-demo-web-${base_name_part}' from instance: $ec2_id"
+        echo "Creating AMI 'ami-web-demo-${base_name_part}' from instance: $ec2_id"
         AMI_ID=$(aws ec2 create-image \
           --instance-id "$ec2_id" \
-          --name "ami-demo-web-${base_name_part}" \
+          --name "ami-web-demo-${base_name_part}" \
           --no-reboot \
           --query 'ImageId' \
           --output text)
@@ -425,7 +425,7 @@ jobs:
         aws ec2 create-tags \
           --resources "$AMI_ID" \
           --tags \
-            Key=Name,Value="ami-demo-web-${base_name_part}" \
+            Key=Name,Value="ami-web-demo-${base_name_part}" \
             Key=CreatedBy,Value="GoldSmith pipeline"
         
         # Tag the Snapshot name 
@@ -436,7 +436,7 @@ jobs:
 
         aws ec2 create-tags \
           --resources "$SNAPSHOT_ID" \
-          --tags Key=Name,Value="snapshot-demo-web-${base_name_part}"
+          --tags Key=Name,Value="snapshot-web-demo-${base_name_part}"
 
 
         echo "web_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
