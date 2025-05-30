@@ -418,12 +418,17 @@ jobs:
           --output text)
 
         echo "Tagging AMI snapshot..."
-        # Wait for the snapshot to be created (can optionally add polling logic)
-        sleep 10
 
+        aws ec2 wait image-exists --image-ids "$AMI_ID"
 
-
-
+        # Tag the AMI
+        aws ec2 create-tags \
+          --resources "$AMI_ID" \
+          --tags \
+            Key=Name,Value="ami-demo-web-${base_name_part}" \
+            Key=CreatedBy,Value="GoldSmith pipeline"
+        
+        # Tag the Snapshot name 
         SNAPSHOT_ID=$(aws ec2 describe-images \
           --image-ids "$AMI_ID" \
           --query "Images[0].BlockDeviceMappings[0].Ebs.SnapshotId" \
@@ -432,11 +437,6 @@ jobs:
         aws ec2 create-tags \
           --resources "$SNAPSHOT_ID" \
           --tags Key=Name,Value="snapshot-demo-web-${base_name_part}"
-
-
-
-
-
 
 
         echo "web_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
