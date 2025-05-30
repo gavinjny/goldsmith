@@ -1,25 +1,11 @@
+resource "aws_instance" "test" {
+  ami                    = var.ami_id
+  instance_type          = var.instance_type
+  subnet_id              = var.subnet
+  vpc_security_group_ids = [var.security_group]
+  key_name               = var.key_name
 
-resource "aws_launch_template" "ec2_template" {
-  name_prefix   = "ec2-template-"
-  image_id      = var.ami_id
-  instance_type = var.instance_type
-  key_name      = var.key_name
-
-  iam_instance_profile {
-    name = var.iam_instance_profile
-  }
-
-  network_interfaces {
-    associate_public_ip_address = true
-    subnet_id                   = var.subnet
-    security_groups             = [var.security_group]
-  }
-
-  tag_specifications {
-    resource_type = "instance"
-
-    tags = {
-      Name = "ec2-demo-web-launch-template"
-    }
+  tags = {
+    Name = "terraform-test-instance"
   }
 }
