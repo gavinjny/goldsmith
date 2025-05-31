@@ -538,7 +538,7 @@ jobs:
 
       env:
         AMD_ID: ${{ needs.create-role-image.outputs.web_ami_id }}
-        INSTANCE_TYPE: "t2.micro"
+        INSTANCE_TYPE: "t3.micro"
         KEY_NAME: ${{ secrets.AWS_KEYNAME }}
         SECURITY_GROUP: ${{ secrets.AWS_SECURITYGROUP }}
         IAM_INSTANCE: ${{ secrets.AWS_PIPELINE_ROLE }}
