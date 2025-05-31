@@ -109,6 +109,7 @@ jobs:
           --tags Key=Name,Value="$SNAPSHOT_NAME"
 
     - name: Wait for AMI to become available
+      if: ${{ github.event.inputs.golden_image_source == 'new base image' }}
       run: |
         AMI_ID="${{ steps.base_build.outputs.base_ami_id }}"
         MAX_RETRIES=30
