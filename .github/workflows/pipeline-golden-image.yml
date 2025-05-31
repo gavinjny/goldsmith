@@ -35,6 +35,11 @@ jobs:
         role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
         aws-region: ${{ vars.AWS_REGION }}
 
+
+    - name: Describe subnets
+      if: ${{ github.event.inputs.golden_image_source == 'new base image' }}
+      run: aws ec2 describe-subnets --subnet-ids subnet-391cc04e subnet-8fd72ad6 subnet-54ad737f subnet-b65fe1d3
+
 # -- BUILD NEW AMI IF SELECTED --
     - name: Install Packer
       if: ${{ github.event.inputs.golden_image_source == 'new base image' }}
