@@ -213,8 +213,9 @@ jobs:
 
     - name: Email test results
       run: |
-        sudo apt-get install -y mailutils
-        cat ansible-run.log | mailx -s "Image Test Results-${GITHUB_RUN_NUMBER}" gavinjny@gmail.com
+        sudo apt-get update
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y mailutils
+        cat ansible-run.log | mailx -s "Goldsmith AMI Test Results-${GITHUB_RUN_NUMBER}" gavinjny@gmail.com
 
     - name: Delete web AMI if it exists
       run: | 
