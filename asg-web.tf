@@ -1,4 +1,5 @@
 resource "aws_autoscaling_group" "demo_asg" {
+  name                 = "asg-web-demo"
   desired_capacity     = 2
   max_size             = 3
   min_size             = 1
@@ -11,7 +12,7 @@ resource "aws_autoscaling_group" "demo_asg" {
 
   tag {
     key                 = "Name"
-    value               = "asg-demo"
+    value               = "ec2-web-demo"
     propagate_at_launch = true
   }
 
