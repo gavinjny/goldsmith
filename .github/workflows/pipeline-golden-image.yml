@@ -215,7 +215,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo DEBIAN_FRONTEND=noninteractive apt-get install -y mailutils
-        cat ansible-run.log | mailx -s "Goldsmith AMI Test Results-${GITHUB_RUN_NUMBER}" gavinjny@gmail.com
+        mailx -s "Goldsmith AMI Test Results-${GITHUB_RUN_NUMBER}" gavinjny@gmail.com < ansible-run.log
 
     - name: Delete web AMI if it exists
       run: | 
