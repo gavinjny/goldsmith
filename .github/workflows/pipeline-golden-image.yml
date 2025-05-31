@@ -108,6 +108,26 @@ jobs:
           --resources "$SNAPSHOT_ID" \
           --tags Key=Name,Value="$SNAPSHOT_NAME"
 
+    - name: Wait for AMI to become available
+      run: |
+        AMI_ID="${{ steps.base_build.outputs.base_ami_id }}"
+        MAX_RETRIES=30
+        SLEEP_SECONDS=10
+
+        for i in $(seq 1 $MAX_RETRIES); do
+          STATE=$(aws ec2 describe-images --image-ids "$AMI_ID" --query "Images[0].State" --output text)
+          echo "AMI state: $STATE"
+
+          if [ "$STATE" = "available" ]; then
+            exit 0
+          elif [ "$STATE" = "failed" ]; then
+            exit 1
+          else
+            sleep $SLEEP_SECONDS
+          fi
+        done
+
+        exit 1
 
 # -------------------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------------------
@@ -440,7 +460,6 @@ jobs:
 
 
         echo "web_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
-        
     - name: Display AMI IDs
       run: |
         # echo "DB AMI: ${{ steps.db_create_ami.outputs.db_ami_id }}"
@@ -479,7 +498,6 @@ jobs:
       with:
         terraform_version: latest
 
-
     - name: Wait for AMI to become available
       run: |
         AMI_ID="${{ needs.create-role-image.outputs.web_ami_id }}"
@@ -506,15 +524,16 @@ jobs:
     - name: Setup web ASG and ALB
       run: |
         terraform init
-        terraform plan
-        terraform apply -auto-approve \
+        terraform plan -out=plan.tfplan
+        terraform apply plan.tfplan -auto-approve \
           -var="ami_id=${{ needs.create-role-image.outputs.web_ami_id }}" \
           -var="instance_type=$INSTANCE_TYPE" \
           -var="key_name=$KEY_NAME" \
           -var="security_group=$SECURITY_GROUP" \
           -var="aws_region=$AWS_REGION" \
           -var="vpc=$VPC" \
-          -var="subnet="$SUBNET"
+          -var="subnet=$SUBNET" \
+          -out=plan.tfplan
 
       env:
         AMD_ID: ${{ needs.create-role-image.outputs.web_ami_id }}
