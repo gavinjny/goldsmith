@@ -524,16 +524,16 @@ jobs:
     - name: Setup web ASG and ALB
       run: |
         terraform init
-        terraform plan -out=plan.tfplan
-        terraform apply plan.tfplan -auto-approve \
+        terraform plan -out=plan.tfplan \
           -var="ami_id=${{ needs.create-role-image.outputs.web_ami_id }}" \
           -var="instance_type=$INSTANCE_TYPE" \
           -var="key_name=$KEY_NAME" \
           -var="security_group=$SECURITY_GROUP" \
           -var="aws_region=$AWS_REGION" \
           -var="vpc=$VPC" \
-          -var="subnet=$SUBNET" \
-          -out=plan.tfplan
+          -var="subnet=$SUBNET"
+
+        terraform apply -auto-approve plan.tfplan
 
       env:
         AMD_ID: ${{ needs.create-role-image.outputs.web_ami_id }}
