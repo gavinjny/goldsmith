@@ -5,10 +5,6 @@ resource "aws_launch_template" "ec2_template" {
   instance_type = var.instance_type
   key_name      = var.key_name
 
-  iam_instance_profile {
-    name = var.iam_instance_profile
-  }
-
   network_interfaces {
     associate_public_ip_address = true
     subnet_id                   = var.subnet
