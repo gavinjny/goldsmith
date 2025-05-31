@@ -1,5 +1,4 @@
 resource "aws_launch_template" "ec2_template" {
-  name          = "lt-web-demo"
   name_prefix   = "lt-web-demo-"
   image_id      = var.ami_id
   instance_type = var.instance_type

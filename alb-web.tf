@@ -1,7 +1,7 @@
 
 
 resource "aws_lb" "app_alb" {
-  name               = "alb-demo-canary"
+  name               = "alb-web-demo"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [var.security_group]
