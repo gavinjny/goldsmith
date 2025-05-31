@@ -3,7 +3,7 @@ resource "aws_lb" "app_alb" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [var.security_group]
-  subnets            = var.aws_vpc_zone_identifier
+  subnets            = [var.aws_vpc_zone_identifier]
 }
 
 resource "aws_lb_target_group" "v1" {
