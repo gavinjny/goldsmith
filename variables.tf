@@ -6,3 +6,4 @@ variable "security_group" {}
 variable "aws_region" {}
 variable "vpc" {}
 variable "subnet" {}
+variable "aws_vpc_zone_identifier" {}

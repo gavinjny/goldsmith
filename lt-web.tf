@@ -6,7 +6,6 @@ resource "aws_launch_template" "ec2_template" {
 
   network_interfaces {
     associate_public_ip_address = true
-    subnet_id                   = var.subnet
     security_groups             = [var.security_group]
   }
 

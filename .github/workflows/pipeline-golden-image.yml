@@ -343,7 +343,8 @@ jobs:
           -var="security_group=$SECURITY_GROUP" \
           -var="aws_region=$AWS_REGION" \
           -var="vpc=$VPC" \
-          -var="subnet=$SUBNET"
+          -var="subnet=$SUBNET" \
+          -var="aws_vpc_zone_identifier=$AWS_VPC_ZONE_IDENTIFIER"
         terraform apply -auto-approve plan.tfplan
 
       env:
@@ -355,6 +356,7 @@ jobs:
         AWS_REGION: ${{ vars.AWS_REGION }}
         VPC: ${{ secrets.AWS_VPC }}
         SUBNET: ${{ secrets.AWS_SUBNET }}
+        AWS_VPC_ZONE_IDENTIFIER: ${{ secrets.AWS_VPC_ZONE_IDENTIFIER }}
 
 # # -------------------------------------------------------------------------------------------
 # # -------------------------------------------------------------------------------------------
