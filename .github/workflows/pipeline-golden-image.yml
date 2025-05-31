@@ -1,10 +1,10 @@
-name: Create & deploy immutable demo infrastructure
+name: Build & deploy immutable demo infrastructure
 
 on:
   workflow_dispatch:
     inputs:
       golden_image_source:
-        description: 'Update Prod servers based on'
+        description: 'Update web servers based on'
         required: true
         default: 'last good base image'
         type: choice
@@ -133,7 +133,7 @@ jobs:
 # # -------------------------------------------------------------------------------------------
 # # -------------------------------------------------------------------------------------------
   create-role-image:
-    name: Build & test role images
+    name: Build & test role image
     needs: [create-golden-image]
     runs-on: ubuntu-latest
     environment: Prod
@@ -208,8 +208,12 @@ jobs:
     - name: Run web customization
       run: |
         ansible-playbook -i "${{ steps.web_get_ip.outputs.web_public_ip }}," image-web.yml \
-        -u ubuntu --private-key ec2-key.pem \
-        --extra-vars "version=$VERSION"
+          -u ubuntu --private-key ec2-key.pem \
+        --extra-vars "version=$VERSION" | tee ansible-run.log
+
+    - name: Email test results
+      run: |
+        cat ansible-run.log | mailx -s "Ansible Deployment Results" gavinjny@gmaill.com
 
     - name: Delete web AMI if it exists
       run: | 
@@ -282,6 +286,8 @@ jobs:
     - name: Display AMI IDs
       run: |
         echo "Web AMI: ${{ steps.web_create_ami.outputs.web_ami_id }}"
+
+
 
     - name: Terminate web EC2 instance
       if: always() # Ensures termination even if previous steps fail

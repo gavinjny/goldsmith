@@ -43,3 +43,26 @@
         owner: www-data
         group: www-data
         mode: '0644'
+  # ----------------------------VALIDATE DEPLOYMENT----------------------------------
+    - name: Wait for web service to become available
+      uri:
+        url: http://localhost
+        status_code: 200
+        timeout: 10
+      register: homepage
+      retries: 5
+      delay: 3
+      until: homepage.status == 200
+
+    - name: Fetch index.html content
+      uri:
+        url: http://localhost
+        return_content: yes
+      register: homepage_content
+
+    - name: Assert resume page is served
+      assert:
+        that:
+          - "'Resume' in homepage_content.content"
+        fail_msg: "Resume page not served correctly"
+        success_msg: "Resume site deployed successfully!"
