@@ -1,6 +1,6 @@
 
 resource "aws_launch_template" "ec2_template" {
-  name_prefix   = "lt-web-launch-template-demo-"
+  name_prefix   = "lt-web-demo-"
   image_id      = var.ami_id
   instance_type = var.instance_type
   key_name      = var.key_name
@@ -19,7 +19,7 @@ resource "aws_launch_template" "ec2_template" {
     resource_type = "instance"
 
     tags = {
-      Name = "lt-web-launch-template-demo"
+      Name = "lt-web-demo"
     }
   }
 }
