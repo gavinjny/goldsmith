@@ -213,6 +213,7 @@ jobs:
 
     - name: Email test results
       run: |
+        sudo apt-get install -y mailutils
         cat ansible-run.log | mailx -s "Deployment Results" gavinjny@gmaill.com
 
     - name: Delete web AMI if it exists
