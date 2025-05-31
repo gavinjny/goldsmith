@@ -129,11 +129,6 @@ jobs:
         done
 
         exit 1
-    - name: Terminate base EC2 instance
-      if: always() # Ensures termination even if previous steps fail
-      run: |
-        aws ec2 terminate-instances --instance-ids ${{ steps.base_ec2_launch.outputs.base_ec2_id }}
-        aws ec2 wait instance-terminated --instance-ids ${{ steps.base_ec2_launch.outputs.base_ec2_id }}
         
 # # -------------------------------------------------------------------------------------------
 # # -------------------------------------------------------------------------------------------
@@ -187,7 +182,6 @@ jobs:
 
     - name: Display Public IPs
       run: |
-        # echo "DB IP: ${{ steps.db_get_ip.outputs.db_public_ip }}"
         echo "Web IP: ${{ steps.web_get_ip.outputs.web_public_ip }}"
 
     - name: Install Ansible
@@ -293,7 +287,6 @@ jobs:
       if: always() # Ensures termination even if previous steps fail
       run: |
         aws ec2 terminate-instances --instance-ids ${{ steps.web_ec2_launch.outputs.web_ec2_id }}
-
 
 
 # -------------------------------------------------------------------------------------------
