@@ -36,8 +36,8 @@ jobs:
         aws-region: ${{ vars.AWS_REGION }}
 
 
-    - name: Describe subnets
-      run: aws ec2 describe-subnets --subnet-ids subnet-391cc04e subnet-8fd72ad6 subnet-54ad737f subnet-b65fe1d3
+    # - name: Describe subnets
+    #   run: aws ec2 describe-subnets --subnet-ids subnet-391cc04e subnet-8fd72ad6 subnet-54ad737f subnet-b65fe1d3
 
 # -- BUILD NEW AMI IF SELECTED --
     - name: Install Packer
@@ -356,7 +356,7 @@ jobs:
           -var="aws_region=$AWS_REGION" \
           -var="vpc=$VPC" \
           -var="subnet=$SUBNET" \
-          -var='aws_vpc_zone_identifier=[$AWS_VPC_ZONE_IDENTIFIER]'
+          -var='aws_vpc_zone_identifier=$AWS_VPC_ZONE_IDENTIFIER'
         terraform apply -auto-approve plan.tfplan
 
       env:
