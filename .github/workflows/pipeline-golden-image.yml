@@ -20,7 +20,7 @@ jobs:
   create-golden-image:
     name: Build base image
     runs-on: ubuntu-latest
-    environment: Prod
+    environment: Staging
     outputs:
       base_ami_id: ${{ steps.base_build.outputs.base_ami_id || steps.use_existing.outputs.base_ami_id }}
       base_ami_name_part: ${{ steps.split_ami_name.outputs.base_ami_name_part }}
@@ -136,7 +136,7 @@ jobs:
     name: Build & test role image
     needs: [create-golden-image]
     runs-on: ubuntu-latest
-    environment: Prod
+    environment: Staging
     outputs:
       web_ec2_id: ${{ steps.web_ec2_launch.outputs.web_ec2_id }}
       web_public_ip: ${{ steps.web_get_ip.outputs.web_public_ip }}
