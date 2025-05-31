@@ -213,7 +213,7 @@ jobs:
 
     - name: Email test results
       run: |
-        cat ansible-run.log | mailx -s "Ansible Deployment Results" gavinjny@gmaill.com
+        cat ansible-run.log | mailx -s "Deployment Results" gavinjny@gmaill.com
 
     - name: Delete web AMI if it exists
       run: | 
