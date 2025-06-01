@@ -1,9 +1,24 @@
-variable "ami_id" {}
-variable "instance_type" {}
-variable "key_name" {}
-variable "security_group" {}
-# variable "iam_instance_profile" {}
-variable "aws_region" {}
-variable "vpc" {}
-variable "subnet" {}
-variable "aws_vpc_zone_identifier" {}
+variable "ami_id" {
+    type = string
+}
+variable "instance_type" {
+    type = string
+}
+variable "key_name" {
+    type = string
+}
+variable "security_group" {
+    type = list(string)
+}
+variable "aws_region" {
+    type = string
+}
+variable "vpc" {
+    type = string
+}
+variable "subnet" {
+    type = string
+}
+variable "aws_vpc_zone_identifier" {
+    type = list(string)
+}
