@@ -370,8 +370,6 @@ jobs:
       run: |
         SUBNET_LIST=$(echo $AWS_VPC_ZONE_IDENTIFIER | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
         SG_LIST=$(echo $SECURITY_GROUP | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
-        echo "segavin $SECURITY_GROUP"
-        echo "segavin $SG_LIST"
         terraform init
         terraform plan -lock=false -out=plan.tfplan \
           -var="ami_id=${{ needs.create-role-image.outputs.web_ami_id }}" \

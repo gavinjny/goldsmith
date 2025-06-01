@@ -4,7 +4,6 @@ resource "aws_lb" "app_alb" {
   load_balancer_type = "application"
   security_groups    = var.security_group
   subnets            = var.aws_vpc_zone_identifier
-#   subnets = ["subnet-391cc04e", "subnet-8fd72ad6", "subnet-54ad737f", "subnet-b65fe1d3"]
 }
 
 resource "aws_lb_target_group" "v1" {
