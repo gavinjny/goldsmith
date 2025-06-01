@@ -1,4 +1,4 @@
-name: Build & deploy immutable demo infrastructure
+name: Build & deploy a demo immutable infrastructure
 
 on:
   workflow_dispatch:
@@ -35,11 +35,6 @@ jobs:
         role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
         aws-region: ${{ vars.AWS_REGION }}
 
-
-    # - name: Describe subnets
-    #   run: aws ec2 describe-subnets --subnet-ids subnet-391cc04e subnet-8fd72ad6 subnet-54ad737f subnet-b65fe1d3
-
-# -- BUILD NEW AMI IF SELECTED --
     - name: Install Packer
       if: ${{ github.event.inputs.golden_image_source == 'new base image' }}
       uses: hashicorp/setup-packer@v2
@@ -67,7 +62,6 @@ jobs:
         AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
         echo "base_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
 
-# -- USE EXISTING LAST GOOD IMAGE IF SELECTED --
     - name: Use latest existing base image
       if: ${{ github.event.inputs.golden_image_source == 'last good base image' }}
       id: use_existing
@@ -82,7 +76,6 @@ jobs:
         echo "Using latest base AMI: $AMI_ID"
         echo "base_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
 
-# -- EXTRACT AMI NAME PART FOR BOTH CASES --
     - name: Extract build id from AMI name
       id: split_ami_name
       run: |
@@ -95,7 +88,6 @@ jobs:
         base_ami_name_part=$(echo "$base_ami_name" | awk -F '-' '{print $NF}')
         echo "base_ami_name_part=$base_ami_name_part" >> $GITHUB_OUTPUT
 
-# -- TAG SNAPSHOT ONLY IF BUILDING NEW IMAGE --
     - name: Set snapshot name
       if: ${{ github.event.inputs.golden_image_source == 'new base image' }}
       run: |
@@ -144,7 +136,7 @@ jobs:
     outputs:
       web_ec2_id: ${{ steps.web_ec2_launch.outputs.web_ec2_id }}
       web_public_ip: ${{ steps.web_get_ip.outputs.web_public_ip }}
-      web_ami_id: ${{ steps.web_create_ami.outputs.web_ami_id }}
+      # web_ami_id: ${{ steps.web_create_ami.outputs.web_ami_id }}
 
     steps:
     - name: Checkout
