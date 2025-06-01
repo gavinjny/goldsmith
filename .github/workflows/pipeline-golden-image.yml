@@ -366,11 +366,14 @@ jobs:
 
         exit 1
 
+    - name: Show Terraform version
+      run: terraform version
+
     - name: Setup web ASG and ALB
       run: |
         SUBNET_LIST=$(echo $AWS_VPC_ZONE_IDENTIFIER | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
         SG_LIST=$(echo $SECURITY_GROUP | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
-        terraform init -upgrade
+        terraform init
         terraform plan -lock=false -out=plan.tfplan \
           -var="ami_id=${{ needs.create-role-image.outputs.web_ami_id }}" \
           -var="instance_type=$INSTANCE_TYPE" \
