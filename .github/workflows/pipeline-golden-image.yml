@@ -375,11 +375,11 @@ jobs:
           -var="ami_id=${{ needs.create-role-image.outputs.web_ami_id }}" \
           -var="instance_type=$INSTANCE_TYPE" \
           -var="key_name=$KEY_NAME" \
-          -var="security_group=$AWS_SECURITYGROUP" \
+          -var="security_group=$SG_LIST" \
           -var="aws_region=$AWS_REGION" \
           -var="vpc=$VPC" \
           -var="subnet=$SUBNET" \
-          -var="aws_vpc_zone_identifier=$AWS_VPC_ZONE_IDENTIFIER"
+          -var="aws_vpc_zone_identifier=$SUBNET_LIST"
         terraform apply -auto-approve plan.tfplan -lock=false
 
       env:
