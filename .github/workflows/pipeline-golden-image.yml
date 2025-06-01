@@ -371,7 +371,7 @@ jobs:
         SUBNET_LIST=$(echo $AWS_VPC_ZONE_IDENTIFIER | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
         SG_LIST=$(echo $AWS_SECURITYGROUP | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
         terraform init
-        terraform plan -out=plan.tfplan -lock=false \
+        terraform plan -lock=false -out=plan.tfplan \
           -var="ami_id=${{ needs.create-role-image.outputs.web_ami_id }}" \
           -var="instance_type=$INSTANCE_TYPE" \
           -var="key_name=$KEY_NAME" \
@@ -380,7 +380,7 @@ jobs:
           -var="vpc=$VPC" \
           -var="subnet=$SUBNET" \
           -var="aws_vpc_zone_identifier=$SUBNET_LIST"
-        terraform apply -auto-approve plan.tfplan -lock=false
+        terraform apply -lock=false -auto-approve plan.tfplan
 
       env:
         AMD_ID: ${{ needs.create-role-image.outputs.web_ami_id }}
