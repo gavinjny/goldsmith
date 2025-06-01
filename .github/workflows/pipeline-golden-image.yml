@@ -366,35 +366,43 @@ jobs:
 
         exit 1
 
-    - name: Show Terraform version
-      run: terraform-bin --version
-
-    - name: Setup web ASG and ALB
+    - name: Clear lock file
       run: |
-        SUBNET_LIST=$(echo $AWS_VPC_ZONE_IDENTIFIER | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
-        SG_LIST=$(echo $SECURITY_GROUP | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
-        terraform init
-        terraform plan -lock=false -out=plan.tfplan \
-          -var="ami_id=${{ needs.create-role-image.outputs.web_ami_id }}" \
-          -var="instance_type=$INSTANCE_TYPE" \
-          -var="key_name=$KEY_NAME" \
-          -var="security_group=$SG_LIST" \
-          -var="aws_region=$AWS_REGION" \
-          -var="vpc=$VPC" \
-          -var="subnet=$SUBNET" \
-          -var="aws_vpc_zone_identifier=$SUBNET_LIST"
-        terraform apply -lock=false -auto-approve plan.tfplan
+          rm -rf .terraform
+          rm -f .terraform.lock.hcl
 
-      env:
-        AMD_ID: ${{ needs.create-role-image.outputs.web_ami_id }}
-        INSTANCE_TYPE: "t2.micro"
-        KEY_NAME: ${{ secrets.AWS_KEYNAME }}
-        SECURITY_GROUP: ${{ secrets.AWS_SECURITYGROUP }}
-        IAM_INSTANCE: ${{ secrets.AWS_PIPELINE_ROLE }}
-        AWS_REGION: ${{ vars.AWS_REGION }}
-        VPC: ${{ secrets.AWS_VPC }}
-        SUBNET: ${{ secrets.AWS_SUBNET }}
-        AWS_VPC_ZONE_IDENTIFIER: ${{ secrets.AWS_VPC_ZONE_IDENTIFIER }}
+    - name: Show Terraform version
+      run: terraform-bin version
+
+    - name: Show Terraform provisions
+      run: terraform-bin providers
+
+    # - name: Setup web ASG and ALB
+    #   run: |
+    #     SUBNET_LIST=$(echo $AWS_VPC_ZONE_IDENTIFIER | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
+    #     SG_LIST=$(echo $SECURITY_GROUP | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
+    #     terraform init
+    #     terraform plan -lock=false -out=plan.tfplan \
+    #       -var="ami_id=${{ needs.create-role-image.outputs.web_ami_id }}" \
+    #       -var="instance_type=$INSTANCE_TYPE" \
+    #       -var="key_name=$KEY_NAME" \
+    #       -var="security_group=$SG_LIST" \
+    #       -var="aws_region=$AWS_REGION" \
+    #       -var="vpc=$VPC" \
+    #       -var="subnet=$SUBNET" \
+    #       -var="aws_vpc_zone_identifier=$SUBNET_LIST"
+    #     terraform apply -lock=false -auto-approve plan.tfplan
+
+    #   env:
+    #     AMD_ID: ${{ needs.create-role-image.outputs.web_ami_id }}
+    #     INSTANCE_TYPE: "t2.micro"
+    #     KEY_NAME: ${{ secrets.AWS_KEYNAME }}
+    #     SECURITY_GROUP: ${{ secrets.AWS_SECURITYGROUP }}
+    #     IAM_INSTANCE: ${{ secrets.AWS_PIPELINE_ROLE }}
+    #     AWS_REGION: ${{ vars.AWS_REGION }}
+    #     VPC: ${{ secrets.AWS_VPC }}
+    #     SUBNET: ${{ secrets.AWS_SUBNET }}
+    #     AWS_VPC_ZONE_IDENTIFIER: ${{ secrets.AWS_VPC_ZONE_IDENTIFIER }}
 
 # # -------------------------------------------------------------------------------------------
 # # -------------------------------------------------------------------------------------------
