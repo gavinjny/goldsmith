@@ -29,5 +29,7 @@ resource "aws_autoscaling_instance_refresh" "refresh" {
     instance_warmup        = 300
   }
 
-  triggers = ["launch_template"]
+  triggers = [
+    aws_launch_template.ec2_template.latest_version
+  ]
 }
