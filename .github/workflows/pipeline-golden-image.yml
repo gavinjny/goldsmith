@@ -215,11 +215,25 @@ jobs:
           -u ubuntu --private-key ec2-key.pem \
         --extra-vars "version=$VERSION" | tee ansible-run.log
 
-    - name: Email test results
+    - name: Read log file into env var
+      id: read_log
       run: |
-        sudo apt-get update
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y mailutils
-        mailx -s "Goldsmith AMI Test Results-${GITHUB_RUN_NUMBER}" gavinjny@gmail.com < ansible-run.log
+        content=$(cat ansible-run.log)
+        echo "log_content<<EOF" >> $GITHUB_OUTPUT
+        echo "$content" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Email test results
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 587
+        username: ${{ secrets.SMTP_USERNAME }}
+        password: ${{ secrets.SMTP_PASSWORD }}
+        subject: "Golden Image Test Results-${GITHUB_RUN_NUMBER}"
+        body: "Image test results.<br>${{ steps.read_log.outputs.log_content }}"
+        to: gavinjny@gmail.com
+        from: GitHub Actions <gavinjny@gmail.com>
 
     - name: Delete web AMI if it exists
       run: | 
