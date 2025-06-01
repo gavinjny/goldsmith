@@ -223,6 +223,13 @@ jobs:
         echo "$content" >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
 
+
+    - name: Get pipeline run number
+      id: get_run_number
+      run: |
+        RUN_NUM=${GITHUB_RUN_NUMBER}
+        echo "run_num=$RUN_NUM" >> $GITHUB_OUTPUT
+
     - name: Email test results
       uses: dawidd6/action-send-mail@v3
       with:
@@ -230,8 +237,8 @@ jobs:
         server_port: 587
         username: ${{ secrets.SMTP_USERNAME }}
         password: ${{ secrets.SMTP_PASSWORD }}
-        subject: "Golden Image Test Results-${GITHUB_RUN_NUMBER}"
-        body: "Image test results.<br>${{ steps.read_log.outputs.log_content }}"
+        subject: "Golden Image Test Results-${{ steps.get_run_number.outputs.run_num }}"
+        body: "Image test results\n${{ steps.read_log.outputs.log_content }}"
         to: gavinjny@gmail.com
         from: GitHub Actions <gavinjny@gmail.com>
 
