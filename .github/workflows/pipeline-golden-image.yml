@@ -369,16 +369,17 @@ jobs:
     - name: Setup web ASG and ALB
       run: |
         SUBNET_LIST=$(echo $AWS_VPC_ZONE_IDENTIFIER | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
+        SG_LIST=$(echo $AWS_SECURITYGROUP | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
         terraform init
         terraform plan -out=plan.tfplan -lock=false \
           -var="ami_id=${{ needs.create-role-image.outputs.web_ami_id }}" \
           -var="instance_type=$INSTANCE_TYPE" \
           -var="key_name=$KEY_NAME" \
-          -var="security_group=$SECURITY_GROUP" \
+          -var="security_group=$AWS_SECURITYGROUP" \
           -var="aws_region=$AWS_REGION" \
           -var="vpc=$VPC" \
           -var="subnet=$SUBNET" \
-          -var="aws_vpc_zone_identifier=$SUBNET_LIST"
+          -var="aws_vpc_zone_identifier=$AWS_VPC_ZONE_IDENTIFIER"
         terraform apply -auto-approve plan.tfplan -lock=false
 
       env:
