@@ -367,7 +367,7 @@ jobs:
         exit 1
 
     - name: Show Terraform version
-      run: terraform version
+      run: terraform-bin --version
 
     - name: Setup web ASG and ALB
       run: |
