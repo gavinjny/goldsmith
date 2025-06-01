@@ -7,7 +7,8 @@ resource "aws_autoscaling_group" "demo_asg" {
 
 launch_template {
   id      = aws_launch_template.ec2_template.id
-  version = "$Latest"  
+  # version = "$Latest"  
+  version = aws_launch_template.ec2_template.latest_version
 }
 
   tag {
@@ -21,13 +22,13 @@ launch_template {
   }
 }
 
-resource "aws_autoscaling_instance_refresh" "refresh" {
-  autoscaling_group_name = aws_autoscaling_group.demo_asg.name
+# resource "aws_autoscaling_instance_refresh" "refresh" {
+#   autoscaling_group_name = aws_autoscaling_group.demo_asg.name
 
-  preferences {
-    min_healthy_percentage = 100
-    instance_warmup        = 300
-  }
+#   preferences {
+#     min_healthy_percentage = 100
+#     instance_warmup        = 300
+#   }
 
-  triggers = ["launch_template"]
-}
+#   triggers = ["launch_template"]
+# }
