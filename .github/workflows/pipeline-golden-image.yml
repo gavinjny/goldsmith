@@ -372,10 +372,11 @@ jobs:
           rm -f .terraform.lock.hcl
 
     - name: Show Terraform version
-      run: terraform-bin version
+      run: terraform version
 
     - name: Show Terraform provisions
-      run: terraform-bin providers
+      run: terraform init
+        terraform providers
 
     # - name: Setup web ASG and ALB
     #   run: |

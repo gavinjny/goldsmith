@@ -20,16 +20,3 @@ launch_template {
     create_before_destroy = true
   }
 }
-
-resource "aws_autoscaling_instance_refresh" "refresh" {
-  autoscaling_group_name = aws_autoscaling_group.demo_asg.name
-
-  preferences {
-    min_healthy_percentage = 100
-    instance_warmup        = 300
-  }
-
-  triggers = [
-    aws_launch_template.ec2_template.latest_version
-  ]
-}
