@@ -19,6 +19,6 @@ variable "vpc" {
 variable "subnet" {
     type = string
 }
-variable "aws_vpc_zone_identifier" {
-    type = list(string)
-}
+# variable "aws_vpc_zone_identifier" {
+#     type = list(string)
+# }
