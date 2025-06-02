@@ -54,11 +54,11 @@
       delay: 3
       until: homepage.status == 200
 
-    - name: Fetch index.html content
-      uri:
-        url: http://localhost
-        return_content: yes
-      register: homepage_content
+    # - name: Fetch index.html content
+    #   uri:
+    #     url: http://localhost
+    #     return_content: yes
+    #   register: homepage_content
 
     - name: Assert resume page is served
       assert:
