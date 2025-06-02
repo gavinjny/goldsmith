@@ -57,7 +57,7 @@ jobs:
         TIMESTAMP=$(date -u +%Y%m%d)
         version="v${TIMESTAMP}.${RUN_NUM}"
         echo "Running Packer build to create version $version ..."
-        packer build -var "aws_region=${{ vars.AWS_REGION }}" -var "version=$version.${{ github.run_number }}" -machine-readable image-base.pkr.hcl | tee packer_output.log
+        packer build -var "aws_region=${{ vars.AWS_REGION }}" -var "version=$version" -machine-readable image-base.pkr.hcl | tee packer_output.log
         echo "Extracting AMI ID from output..."
         AMI_ID=$(awk -F, '/artifact,0,id/ {print $6}' packer_output.log | cut -d ':' -f2)
         echo "base_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
@@ -92,7 +92,7 @@ jobs:
       if: ${{ github.event.inputs.golden_image_source == 'new base image' }}
       run: |
         AMI_ID="${{ steps.base_build.outputs.base_ami_id }}"
-        SNAPSHOT_NAME="snapshot-base-demo-${{ steps.split_ami_name.outputs.base_ami_name_part }}.${{ github.run_number }}"
+        SNAPSHOT_NAME="snapshot-base-demo-${{ steps.split_ami_name.outputs.base_ami_name_part }}"
 
         SNAPSHOT_ID=$(aws ec2 describe-images \
           --image-ids "$AMI_ID" \
@@ -260,7 +260,7 @@ jobs:
       id: web_create_ami
       run: |
         ec2_id=${{ steps.web_ec2_launch.outputs.web_ec2_id }}
-        base_name_part="${{ needs.create-golden-image.outputs.base_ami_name_part }}.${{ github.run_number }}""
+        base_name_part="${{ needs.create-golden-image.outputs.base_ami_name_part }}"
         echo "Creating AMI 'ami-web-demo-${base_name_part}' from instance: $ec2_id"
         AMI_ID=$(aws ec2 create-image \
           --instance-id "$ec2_id" \
