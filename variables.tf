@@ -22,3 +22,6 @@ variable "subnet" {
 variable "aws_vpc_zone_identifier" {
     type = list(string)
 }
+variable "acm_certificate_arn" {
+    type = string
+}
