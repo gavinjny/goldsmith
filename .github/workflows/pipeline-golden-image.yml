@@ -388,12 +388,11 @@ jobs:
     - name: Refresh ASG Instances
       run: |
         aws autoscaling start-instance-refresh \
-          --auto-scaling-group-name asg-web-demo-v1 \
+          --auto-scaling-group-name asg-web-demo-v2 \
           --strategy Rolling
 
     - name: Refresh ASG Instances
       run: |
         aws autoscaling start-instance-refresh \
-          --auto-scaling-group-name asg-web-demo-v2 \
+          --auto-scaling-group-name asg-web-demo-v1 \
           --strategy Rolling
-

@@ -91,3 +91,53 @@ resource "aws_autoscaling_group" "asg_v2" {
     create_before_destroy = true
   }
 }
+
+# Scale Out Policy (add 1 instance if CPU > 70%)
+resource "aws_autoscaling_policy" "scale_out" {
+  name                   = "scale-out-policy"
+  autoscaling_group_name = aws_autoscaling_group.asg_v1.name
+  adjustment_type        = "ChangeInCapacity"
+  scaling_adjustment     = 1
+  cooldown               = 300
+}
+
+resource "aws_cloudwatch_metric_alarm" "cpu_high" {
+  alarm_name          = "high-cpu-alarm"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = 60
+  statistic           = "Average"
+  threshold           = 70
+  alarm_description   = "Trigger scale-out when CPU > 70% for 2 minutes"
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.asg_v1.name
+  }
+  alarm_actions = [aws_autoscaling_policy.scale_out.arn]
+}
+
+# Scale In Policy (remove 1 instance if CPU < 20%)
+resource "aws_autoscaling_policy" "scale_in" {
+  name                   = "scale-in-policy"
+  autoscaling_group_name = aws_autoscaling_group.asg_v1.name
+  adjustment_type        = "ChangeInCapacity"
+  scaling_adjustment     = -1
+  cooldown               = 300
+}
+
+resource "aws_cloudwatch_metric_alarm" "cpu_low" {
+  alarm_name          = "low-cpu-alarm"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = 60
+  statistic           = "Average"
+  threshold           = 20
+  alarm_description   = "Trigger scale-in when CPU < 20% for 2 minutes"
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.asg_v1.name
+  }
+  alarm_actions = [aws_autoscaling_policy.scale_in.arn]
+}
