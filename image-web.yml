@@ -1,5 +1,5 @@
 - hosts: "localhost"
-  name: Deploy resume site with Apache
+  name: Deploy resume site with Nginx
   vars:
     resume_local_path: ./resume/index.html
     resume_remote_path: /var/www/html/index.html
@@ -7,15 +7,15 @@
 
   tasks:
   # ----------------------------INSTALL WEB SERVER AND DEPENDENCIES----------------------------------
-    - name: Ensure Apache is installed
+    - name: Ensure Nginx is installed
       apt:
-        name: apache2
+        name: nginx
         state: present
         update_cache: yes
 
-    - name: Ensure Apache is running and enabled
+    - name: Ensure Nginx is running and enabled
       service:
-        name: apache2
+        name: nginx
         state: started
         enabled: true
 
@@ -36,6 +36,14 @@
       command: snap start amazon-ssm-agent
 
   # ----------------------------INSTALL WEB----------------------------------
+    - name: Ensure web root exists
+      file:
+        path: /var/www/html
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+        
     - name: Copy resume HTML to web root
       copy:
         src: "{{ resume_local_path }}"
@@ -43,6 +51,7 @@
         owner: www-data
         group: www-data
         mode: '0644'
+
   # ----------------------------VALIDATE DEPLOYMENT----------------------------------
     - name: Wait for web service to become available
       uri:
