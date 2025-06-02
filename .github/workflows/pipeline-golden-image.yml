@@ -201,23 +201,23 @@ jobs:
           sleep 5
         done
 
-    - name: Copy resume HTML via PEM and SCP
-      run: |
-        scp -i ./ec2-key.pem -o StrictHostKeyChecking=no -P 22 ./resume/index.html root@${{ steps.web_get_ip.outputs.web_public_ip }}:/tmp/index.html
+    # - name: Copy resume HTML via PEM and SCP
+    #   run: |
+    #     scp -i ./ec2-key.pem -o StrictHostKeyChecking=no -P 22 ./resume/index.html ubuntu@${{ steps.web_get_ip.outputs.web_public_ip }}:/tmp/index.html
 
-    - name: Move file to web root via SSH
-      run: |
-        ssh -i ./ec2-key.pem -o StrictHostKeyChecking=no -p 22 root@${{ steps.web_get_ip.outputs.web_public_ip }} << 'EOF'
-          sudo mkdir -p /var/www/html
-          sudo mv /tmp/index.html /var/www/html/index.html
-          sudo chown www-data:www-data /var/www/html/index.html
-          sudo chmod 644 /var/www/html/index.html
-        EOF
+    # - name: Move file to web root via SSH
+    #   run: |
+    #     ssh -i ./ec2-key.pem -o StrictHostKeyChecking=no -p 22 ubuntu@${{ steps.web_get_ip.outputs.web_public_ip }} << 'EOF'
+    #       sudo mkdir -p /var/www/html
+    #       sudo mv /tmp/index.html /var/www/html/index.html
+    #       sudo chown www-data:www-data /var/www/html/index.html
+    #       sudo chmod 644 /var/www/html/index.html
+    #     EOF
 
     - name: Run web customization
       run: |
         ansible-playbook -i "${{ steps.web_get_ip.outputs.web_public_ip }}," image-web.yml \
-          -u root --private-key ec2-key.pem | tee ansible-run.log
+          -u ubuntu --private-key ec2-key.pem | tee ansible-run.log
 
 #     - name: Read log file into env var
 #       id: read_log
