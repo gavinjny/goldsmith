@@ -8,11 +8,11 @@ resource "aws_lb_listener" "http" {
     forward {
       target_group {
         arn    = aws_lb_target_group.v1.arn
-        weight = 90
+        weight = 50
       }
       target_group {
         arn    = aws_lb_target_group.v2.arn
-        weight = 10
+        weight = 50
       }
       stickiness {
         enabled  = false

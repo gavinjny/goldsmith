@@ -260,8 +260,8 @@ jobs:
       id: web_create_ami
       run: |
         ec2_id=${{ steps.web_ec2_launch.outputs.web_ec2_id }}
-        base_name_part=${{ needs.create-golden-image.outputs.base_ami_name_part }}
-        echo "Creating AMI 'ami-web-demo-${base_name_part}.${{ github.run_number }}' from instance: $ec2_id"
+        base_name_part="${{ needs.create-golden-image.outputs.base_ami_name_part }}.${{ github.run_number }}""
+        echo "Creating AMI 'ami-web-demo-${base_name_part}' from instance: $ec2_id"
         AMI_ID=$(aws ec2 create-image \
           --instance-id "$ec2_id" \
           --name "ami-web-demo-${base_name_part}" \
@@ -277,7 +277,7 @@ jobs:
         aws ec2 create-tags \
           --resources "$AMI_ID" \
           --tags \
-            Key=Name,Value="ami-web-demo-${base_name_part}.${{ github.run_number }}" \
+            Key=Name,Value="ami-web-demo-${base_name_part}" \
             Key=CreatedBy,Value="GoldSmith pipeline"
         
         # Tag the Snapshot name 
@@ -288,7 +288,7 @@ jobs:
 
         aws ec2 create-tags \
           --resources "$SNAPSHOT_ID" \
-          --tags Key=Name,Value="snapshot-web-demo-${base_name_part}.${{ github.run_number }}"
+          --tags Key=Name,Value="snapshot-web-demo-${base_name_part}"
 
         echo "web_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
 
