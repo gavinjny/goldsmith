@@ -35,23 +35,6 @@
     - name: Start amazon-ssm-agent via snap
       command: snap start amazon-ssm-agent
 
-  # ----------------------------INSTALL WEB----------------------------------
-    - name: Ensure web root exists
-      file:
-        path: /var/www/html
-        state: directory
-        owner: www-data
-        group: www-data
-        mode: '0755'
-        
-    - name: Copy resume HTML to web root
-      copy:
-        src: "{{ resume_local_path }}"
-        dest: "{{ resume_remote_path }}"
-        owner: www-data
-        group: www-data
-        mode: '0644'
-
   # ----------------------------VALIDATE DEPLOYMENT----------------------------------
     - name: Wait for web service to become available
       uri:
