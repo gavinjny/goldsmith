@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   create-golden-image:
-    name: Build base image
+    name: "[STG] Build base image"
     runs-on: ubuntu-latest
     environment: Staging
     outputs:
@@ -129,7 +129,7 @@ jobs:
 # # -------------------------------------------------------------------------------------------
 # # -------------------------------------------------------------------------------------------
   create-role-image:
-    name: Build & test role image
+    name: "[STG] Build & test role image"
     needs: [create-golden-image]
     runs-on: ubuntu-latest
     environment: Staging
@@ -315,7 +315,7 @@ jobs:
 # -------------------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------------------
   distribute-image:
-    name: Deploy role image
+    name: "[PRD] Deploy role image"
     needs: [create-golden-image,create-role-image]
     runs-on: ubuntu-latest
     environment: Prod
