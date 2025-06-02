@@ -227,7 +227,7 @@ jobs:
         server_port: 587
         username: ${{ secrets.SMTP_USERNAME }}
         password: ${{ secrets.SMTP_PASSWORD }}
-        subject: "Golden Image Test Results-${{ steps.get_run_number.outputs.run_num }}"
+        subject: "Web Image Test Results-${{ steps.get_run_number.outputs.run_num }}"
         body: "Image test results\n${{ steps.read_log.outputs.log_content }}"
         to: gavinjny@gmail.com
         from: GitHub Actions <gavinjny@gmail.com>
@@ -315,7 +315,7 @@ jobs:
 # -------------------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------------------
   distribute-image:
-    name: Distribute role image
+    name: Deploy role image
     needs: [create-golden-image,create-role-image]
     runs-on: ubuntu-latest
     environment: Prod

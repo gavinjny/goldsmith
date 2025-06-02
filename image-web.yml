@@ -1,8 +1,5 @@
 - hosts: all
   name: Deploy resume site with Apache
-  vars:
-    resume_local_path: ./resume/index.html
-    resume_remote_path: /var/www/html/index.html
   become: true
 
   tasks:
@@ -38,8 +35,16 @@
   # ----------------------------INSTALL WEB----------------------------------
     - name: Copy resume HTML to web root
       copy:
-        src: "{{ resume_local_path }}"
-        dest: "{{ resume_remote_path }}"
+        src: "./resume/index.html"
+        dest: "/var/www/html/index.html"
+        owner: www-data
+        group: www-data
+        mode: '0644'
+
+    - name: Copy favicon HTML to web root
+      copy:
+        src: "./resume/favicon.ico"
+        dest: "/var/www/html/favicon.ico"
         owner: www-data
         group: www-data
         mode: '0644'
@@ -54,11 +59,11 @@
       delay: 3
       until: homepage.status == 200
 
-    # - name: Fetch index.html content
-    #   uri:
-    #     url: http://localhost
-    #     return_content: yes
-    #   register: homepage_content
+    - name: Fetch index.html content
+      uri:
+        url: http://localhost
+        return_content: yes
+      register: homepage_content
 
     - name: Assert resume page is served
       assert:
@@ -66,3 +71,28 @@
           - "'Resume' in homepage_content.content"
         fail_msg: "Resume page not served correctly"
         success_msg: "Resume site deployed successfully!"
+
+    - name: Get current timezone
+      command: timedatectl show -p Timezone --value
+      register: timezone_result
+
+    - name: Assert timezone is America/New_York
+      assert:
+        that:
+          - timezone_result.stdout == "America/New_York"
+        fail_msg: "Timezone is not set to America/New_York"
+        success_msg: "Timezone is correctly set to America/New_York"
+
+
+    - name: Check for available package updates
+      command: apt list --upgradeable
+      register: upgradeable_output
+      changed_when: false
+      failed_when: false
+
+    - name: Assert that system is up to date
+      assert:
+        that:
+          - "'upgradable' not in upgradeable_output.stdout"
+        fail_msg: "There are packages that need to be upgraded."
+        success_msg: "System is fully updated."

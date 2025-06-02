@@ -1,18 +1,18 @@
 # About
-This project is a demonstration Github pipeline(Goldsmith) to create, update and deploy a golden image for a fictitious company (Storefront). The pipeline modifies AWS AMI, EC2, ASG, ALB, Cloudwatch. [Monitoring and automatic testing included??]
+This project is a demonstration Github pipeline(Goldsmith) to create, update and deploy golden images. The infrastructure hosts http://www.gavinjny.com, which only displays a copy of my resume. The pipeline modifies AWS AMI, EC2, ASG, ALB. 
 
 **Features**
 1.	Updates golden image and EC2s on AWS
 2.	Creates new or use existing golden image
-2.  Deploys Ubuntu EC2 using canary deployment
+2.  Deploys Ubuntu EC2 using rolling deployment
+3.  Uses auto scaling
 3.	Automated testing of images
 4.	Automated end to end
 5.	Application management
 6.	Monitoring with CloudWatch
-7.	Notification via Trello
-8.	Escalated user support
+7.	Test result notification via email
 
-**Skills**
+**Skills Demonstrated**
 1.	Bash
 1.	Ansible
 1.	Terraform 
@@ -29,83 +29,56 @@ This project is a demonstration Github pipeline(Goldsmith) to create, update and
 1. Credential security
 
 
-## Goals:
-1. Create or update a golden image hosting an ecommerce site (Storefront). 
-2. Validate and distribute the image to a autoscaling group. 
-3. Distribute version of software using a pipeline. 
-4. Monitor instances using CloudWatch with a dashboard.
-[diagram does here]
+# Pipeline 1: Build & deploy immutable infrastructure on AWS
+## Getting Started
+Follow these steps to run the pipeline(Goldsmith). This repo's pipeline is only available to me. You would have to clone the repo and customize for your AWS account,.
+1. Go to GitHub Actions
+1. Select "Build & deploy a demo immutable infrastructure" pipeline
+    1. Click Run Workflow
+    1. Choose if deployment should use new base image or existing base image
+    1. Click run workflow
+![alt text](./images/2025-06-02_12-35-49.jpg "optional title")
 
-
-# Getting Started
-[Go to ________ and do blah]
-
-## Input
-- Storefront version
-
-Deploys:
- - New
- - Existing image
-    - Version of selected image
-GitHub Variables:
-[]
-
-GitHub Secrets:
-[]
-
-# Pipeline actions
-## Create golden image
-Create pipeline following these steps. All steps use Packer
-1. Create or update Ubuntu base image
-    1. Change timezone
-    1. Update software
-    1. Test deployment
-        1. Security - Lynis (lightweight, Linux-specific)
-        1. Application Configuration - Ansible test modules (assert, setup) or InSpec
-            1. Compliance – OPENSCAP
-            1. Latest patches 
-            1. Application meta data validation – ansible
-            1. Confirms image metadata - Ansible test modules (assert, setup) or InSpec
-        1. Functionality 
-            1. Services running - Ansible
-            1. Synthetic checks - Playwrite
-    1. Build success?
-        1. Yes - Tag successful build
-        1. No – Delete image
+## Steps Followed
+### 1. Create base image
+Create or update Ubuntu base image - Packer
+1. Change timezone
+1. Update software
+1. Was the build success?
+    1. Yes - Tag the image with v[Date].[Base image build ID]
+    1. No – Delete image
+### 2. Create role image
 1. Create child image – role specific changes(web, db)
-    1. Run Ansible to customize server
-    1. Install Prestashop
-    1. Test deployment
-        1. Security - Lynis (lightweight, Linux-specific)
-        1. Application Configuration - Ansible test modules (assert, setup) or InSpec
-            1. Compliance – OPENSCAP
-            1. Latest patches 
-            1. Application meta data validation – ansible
-            1. Confirms image metadata - Ansible test modules (assert, setup) or InSpec
-        1. Functionality 
-            1. Services running - Ansible
-            1. Synthetic checks – Playwrite
-    1. Build success?
-        1. Yes - Tag successful build
+    1. Customize server - Ansible
+    1. Test deployment - Ansible assertion
+        1. Latest patches 
+        1. Timezone change to New York
+        1. Services running with Ansible
+        1. Localhost requests are working
+    1. Was the build success?
+        1. Yes - Tag the image with name of v[Date].[Base image build ID].[Role image build ID]
         1. No – Delete image
 
-## Distribute golden image
+### 3. Deploy role image
 **Terraform**
-1. Canary deployment of the latest build - ALB
+1. Rolling deployment of the latest role image - ALB
 1. Create autoscaling group - ASG
 
-## Setup dashboard
-**Terraform**
-1. Golden signals - CloudWatch
-1. Test results - CloudWatch
 
-## Setup incident tracking
-**Terraform**
-1. Alerts teams - CloudWatch
-1. Create Trello issue with failure results - CloudWatch
+## Todo
+1. Use Inpec for testing
+1. Setup incident tracking using Cloudwatch and Trello
+1. Show golden signals with Cloudwatch
+1. Create dashboard
+1. Use OPENSCAP for compliance testing
+1. Application meta data validation – ansible
+1. Confirms image metadata - Ansible test modules (assert, setup) or InSpec
+1. Testing - Synthetic checks with Playwrite
+1. Testing - Security checks with Lynis (lightweight, Linux-specific)
 
-## Reset of AWS environment
+
+# Pipeline 2: Reset of AWS environment
 Shutdown and delete all AWS test services/instances
-Purpose:
 - Ensures I dont get charged for unused AWS instances and services
 - Reset AWS assets to zero to show process can run from scratch
+
