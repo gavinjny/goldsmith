@@ -216,7 +216,7 @@ jobs:
 
     - name: Run web customization
       run: |
-        ansible-playbook -i "${{ steps.web_get_ip.outputs.web_public_ip }}," test.yml \
+        ansible-playbook -i "${{ steps.web_get_ip.outputs.web_public_ip }}," image-web.yml \
           -u ubuntu --private-key ./ec2-key.pem
           # | tee ansible-run.log
 
