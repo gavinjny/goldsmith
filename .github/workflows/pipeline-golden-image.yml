@@ -260,7 +260,7 @@ jobs:
       id: web_create_ami
       run: |
         ec2_id=${{ steps.web_ec2_launch.outputs.web_ec2_id }}
-        base_name_part="${{ needs.create-golden-image.outputs.base_ami_name_part }}"
+        base_name_part="${{ needs.create-golden-image.outputs.base_ami_name_part }}.${{ github.run_number }}"
         echo "Creating AMI 'ami-web-demo-${base_name_part}' from instance: $ec2_id"
         AMI_ID=$(aws ec2 create-image \
           --instance-id "$ec2_id" \
