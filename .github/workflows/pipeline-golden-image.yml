@@ -136,7 +136,7 @@ jobs:
     outputs:
       web_ec2_id: ${{ steps.web_ec2_launch.outputs.web_ec2_id }}
       web_public_ip: ${{ steps.web_get_ip.outputs.web_public_ip }}
-      web_ami_id: ${{ steps.web_create_ami.outputs.web_ami_id }}
+      # web_ami_id: ${{ steps.web_create_ami.outputs.web_ami_id }}
 
     steps:
     - name: Checkout
@@ -201,204 +201,205 @@ jobs:
           sleep 5
         done
 
-    - name: Copy resume HTML
-      run: |
-        scp -i ./ec2-key.pem -o StrictHostKeyChecking=no -P 22 ./resume/index.html ubuntu@${{ steps.web_get_ip.outputs.web_public_ip }}:/tmp/index.html
+    # - name: Copy resume HTML
+    #   run: |
+    #     scp -i ./ec2-key.pem -o StrictHostKeyChecking=no -P 22 ./resume/index.html ubuntu@${{ steps.web_get_ip.outputs.web_public_ip }}:/tmp/index.html
 
-    - name: Move file to web root
-      run: |
-        ssh -i ./ec2-key.pem -o StrictHostKeyChecking=no -p 22 ubuntu@${{ steps.web_get_ip.outputs.web_public_ip }} << 'EOF'
-          sudo mkdir -p /var/www/html
-          sudo mv /tmp/index.html /var/www/html/index.html
-          sudo chown www-data:www-data /var/www/html/index.html
-          sudo chmod 644 /var/www/html/index.html
-        EOF
+    # - name: Move file to web root
+    #   run: |
+    #     ssh -i ./ec2-key.pem -o StrictHostKeyChecking=no -p 22 ubuntu@${{ steps.web_get_ip.outputs.web_public_ip }} << 'EOF'
+    #       sudo mkdir -p /var/www/html
+    #       sudo mv /tmp/index.html /var/www/html/index.html
+    #       sudo chown www-data:www-data /var/www/html/index.html
+    #       sudo chmod 644 /var/www/html/index.html
+    #     EOF
 
     - name: Run web customization
       run: |
-        ansible-playbook -i "${{ steps.web_get_ip.outputs.web_public_ip }}," image-web.yml \
-          -u ubuntu --private-key ec2-key.pem | tee ansible-run.log
+        ansible-playbook -i "${{ steps.web_get_ip.outputs.web_public_ip }}," test.yml \
+          -u root --private-key ./ec2-key.pem 
+          # | tee ansible-run.log
 
-    - name: Read log file into env var
-      id: read_log
-      run: |
-        content=$(cat ansible-run.log)
-        echo "log_content<<EOF" >> $GITHUB_OUTPUT
-        echo "$content" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+#     - name: Read log file into env var
+#       id: read_log
+#       run: |
+#         content=$(cat ansible-run.log)
+#         echo "log_content<<EOF" >> $GITHUB_OUTPUT
+#         echo "$content" >> $GITHUB_OUTPUT
+#         echo "EOF" >> $GITHUB_OUTPUT
 
 
-    - name: Get pipeline run number
-      id: get_run_number
-      run: |
-        RUN_NUM=${GITHUB_RUN_NUMBER}
-        echo "run_num=$RUN_NUM" >> $GITHUB_OUTPUT
+#     - name: Get pipeline run number
+#       id: get_run_number
+#       run: |
+#         RUN_NUM=${GITHUB_RUN_NUMBER}
+#         echo "run_num=$RUN_NUM" >> $GITHUB_OUTPUT
 
-    - name: Email test results
-      uses: dawidd6/action-send-mail@v3
-      with:
-        server_address: smtp.gmail.com
-        server_port: 587
-        username: ${{ secrets.SMTP_USERNAME }}
-        password: ${{ secrets.SMTP_PASSWORD }}
-        subject: "Golden Image Test Results-${{ steps.get_run_number.outputs.run_num }}"
-        body: "Image test results\n${{ steps.read_log.outputs.log_content }}"
-        to: gavinjny@gmail.com
-        from: GitHub Actions <gavinjny@gmail.com>
+#     - name: Email test results
+#       uses: dawidd6/action-send-mail@v3
+#       with:
+#         server_address: smtp.gmail.com
+#         server_port: 587
+#         username: ${{ secrets.SMTP_USERNAME }}
+#         password: ${{ secrets.SMTP_PASSWORD }}
+#         subject: "Golden Image Test Results-${{ steps.get_run_number.outputs.run_num }}"
+#         body: "Image test results\n${{ steps.read_log.outputs.log_content }}"
+#         to: gavinjny@gmail.com
+#         from: GitHub Actions <gavinjny@gmail.com>
 
-    - name: Delete web AMI if it exists
-      run: | 
-        echo "Looking up AMI with name: $AMI_NAME"
-        AMI_ID=$(aws ec2 describe-images \
-          --owners self \
-          --filters "Name=name,Values=$AMI_NAME" \
-          --query 'Images[0].ImageId' \
-          --output text 2>/dev/null)
+#     - name: Delete web AMI if it exists
+#       run: | 
+#         echo "Looking up AMI with name: $AMI_NAME"
+#         AMI_ID=$(aws ec2 describe-images \
+#           --owners self \
+#           --filters "Name=name,Values=$AMI_NAME" \
+#           --query 'Images[0].ImageId' \
+#           --output text 2>/dev/null)
 
-        if [ "$AMI_ID" != "None" ]; then
-          echo "Found AMI: $AMI_ID — deregistering..."
-          aws ec2 deregister-image --image-id "$AMI_ID"
+#         if [ "$AMI_ID" != "None" ]; then
+#           echo "Found AMI: $AMI_ID — deregistering..."
+#           aws ec2 deregister-image --image-id "$AMI_ID"
 
-          echo "Looking up associated snapshots..."
-          SNAPSHOT_IDS=$(aws ec2 describe-snapshots \
-          --owner-ids self \
-          --filters "Name=tag:Name,Values=snapshot-web-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}" \
-          --query "Snapshots[*].SnapshotId" \
-          --output text)
+#           echo "Looking up associated snapshots..."
+#           SNAPSHOT_IDS=$(aws ec2 describe-snapshots \
+#           --owner-ids self \
+#           --filters "Name=tag:Name,Values=snapshot-web-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}" \
+#           --query "Snapshots[*].SnapshotId" \
+#           --output text)
 
-          for SNAPSHOT_ID in $SNAPSHOT_IDS; do
-            echo "Deleting snapshot: $SNAPSHOT_ID"
-            aws ec2 delete-snapshot --snapshot-id "$SNAPSHOT_ID"
-          done
-        else
-          echo "No AMI found with name: $AMI_NAME"
-        fi
+#           for SNAPSHOT_ID in $SNAPSHOT_IDS; do
+#             echo "Deleting snapshot: $SNAPSHOT_ID"
+#             aws ec2 delete-snapshot --snapshot-id "$SNAPSHOT_ID"
+#           done
+#         else
+#           echo "No AMI found with name: $AMI_NAME"
+#         fi
 
-      env:
-          AMI_NAME: ami-web-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}
+#       env:
+#           AMI_NAME: ami-web-demo-${{ needs.create-golden-image.outputs.base_ami_name_part }}
 
-# -------------------------------------------------------------------------------------------
-    - name: Create web AMI
-      id: web_create_ami
-      run: |
-        ec2_id=${{ steps.web_ec2_launch.outputs.web_ec2_id }}
-        base_name_part=${{ needs.create-golden-image.outputs.base_ami_name_part }}
-        echo "Creating AMI 'ami-web-demo-${base_name_part}' from instance: $ec2_id"
-        AMI_ID=$(aws ec2 create-image \
-          --instance-id "$ec2_id" \
-          --name "ami-web-demo-${base_name_part}" \
-          --no-reboot \
-          --query 'ImageId' \
-          --output text)
+# # -------------------------------------------------------------------------------------------
+#     - name: Create web AMI
+#       id: web_create_ami
+#       run: |
+#         ec2_id=${{ steps.web_ec2_launch.outputs.web_ec2_id }}
+#         base_name_part=${{ needs.create-golden-image.outputs.base_ami_name_part }}
+#         echo "Creating AMI 'ami-web-demo-${base_name_part}' from instance: $ec2_id"
+#         AMI_ID=$(aws ec2 create-image \
+#           --instance-id "$ec2_id" \
+#           --name "ami-web-demo-${base_name_part}" \
+#           --no-reboot \
+#           --query 'ImageId' \
+#           --output text)
 
-        echo "Tagging AMI snapshot..."
+#         echo "Tagging AMI snapshot..."
 
-        aws ec2 wait image-exists --image-ids "$AMI_ID"
+#         aws ec2 wait image-exists --image-ids "$AMI_ID"
 
-        # Tag the AMI
-        aws ec2 create-tags \
-          --resources "$AMI_ID" \
-          --tags \
-            Key=Name,Value="ami-web-demo-${base_name_part}" \
-            Key=CreatedBy,Value="GoldSmith pipeline"
+#         # Tag the AMI
+#         aws ec2 create-tags \
+#           --resources "$AMI_ID" \
+#           --tags \
+#             Key=Name,Value="ami-web-demo-${base_name_part}" \
+#             Key=CreatedBy,Value="GoldSmith pipeline"
         
-        # Tag the Snapshot name 
-        SNAPSHOT_ID=$(aws ec2 describe-images \
-          --image-ids "$AMI_ID" \
-          --query "Images[0].BlockDeviceMappings[0].Ebs.SnapshotId" \
-          --output text)
+#         # Tag the Snapshot name 
+#         SNAPSHOT_ID=$(aws ec2 describe-images \
+#           --image-ids "$AMI_ID" \
+#           --query "Images[0].BlockDeviceMappings[0].Ebs.SnapshotId" \
+#           --output text)
 
-        aws ec2 create-tags \
-          --resources "$SNAPSHOT_ID" \
-          --tags Key=Name,Value="snapshot-web-demo-${base_name_part}"
+#         aws ec2 create-tags \
+#           --resources "$SNAPSHOT_ID" \
+#           --tags Key=Name,Value="snapshot-web-demo-${base_name_part}"
 
-        echo "web_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
+#         echo "web_ami_id=$AMI_ID" >> $GITHUB_OUTPUT
 
-    - name: Display AMI IDs
-      run: |
-        echo "Web AMI: ${{ steps.web_create_ami.outputs.web_ami_id }}"
-
-
-
-    - name: Terminate web EC2 instance
-      if: always() # Ensures termination even if previous steps fail
-      run: |
-        aws ec2 terminate-instances --instance-ids ${{ steps.web_ec2_launch.outputs.web_ec2_id }}
+#     - name: Display AMI IDs
+#       run: |
+#         echo "Web AMI: ${{ steps.web_create_ami.outputs.web_ami_id }}"
 
 
-# -------------------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------------------
-  distribute-image:
-    name: Distribute role image
-    needs: [create-golden-image,create-role-image]
-    runs-on: ubuntu-latest
-    environment: Prod
 
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+#     - name: Terminate web EC2 instance
+#       if: always() # Ensures termination even if previous steps fail
+#       run: |
+#         aws ec2 terminate-instances --instance-ids ${{ steps.web_ec2_launch.outputs.web_ec2_id }}
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
-        aws-region: ${{ vars.AWS_REGION }}
 
-    - name: Install Terraform
-      uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_version: latest
+# # -------------------------------------------------------------------------------------------
+# # -------------------------------------------------------------------------------------------
+#   distribute-image:
+#     name: Distribute role image
+#     needs: [create-golden-image,create-role-image]
+#     runs-on: ubuntu-latest
+#     environment: Prod
 
-    - name: Wait for AMI to become available
-      run: |
-        AMI_ID="${{ needs.create-role-image.outputs.web_ami_id }}"
-        MAX_RETRIES=30
-        SLEEP_SECONDS=10
+#     steps:
+#     - name: Checkout
+#       uses: actions/checkout@v4
 
-        for i in $(seq 1 $MAX_RETRIES); do
-          STATE=$(aws ec2 describe-images --image-ids "$AMI_ID" --query "Images[0].State" --output text)
-          echo "AMI state: $STATE"
+#     - name: Configure AWS credentials
+#       uses: aws-actions/configure-aws-credentials@v2
+#       with:
+#         role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+#         aws-region: ${{ vars.AWS_REGION }}
 
-          if [ "$STATE" = "available" ]; then
-            exit 0
-          elif [ "$STATE" = "failed" ]; then
-            exit 1
-          else
-            sleep $SLEEP_SECONDS
-          fi
-        done
+#     - name: Install Terraform
+#       uses: hashicorp/setup-terraform@v2
+#       with:
+#         terraform_version: latest
 
-        exit 1
+#     - name: Wait for AMI to become available
+#       run: |
+#         AMI_ID="${{ needs.create-role-image.outputs.web_ami_id }}"
+#         MAX_RETRIES=30
+#         SLEEP_SECONDS=10
 
-    - name: Setup web ASG and ALB
-      run: |
-        SUBNET_LIST=$(echo $AWS_VPC_ZONE_IDENTIFIER | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
-        SG_LIST=$(echo $SECURITY_GROUP | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
-        terraform init
-        terraform plan -lock=false -out=plan.tfplan \
-          -var="ami_id=${{ needs.create-role-image.outputs.web_ami_id }}" \
-          -var="instance_type=$INSTANCE_TYPE" \
-          -var="key_name=$KEY_NAME" \
-          -var="security_group=$SG_LIST" \
-          -var="aws_region=$AWS_REGION" \
-          -var="vpc=$VPC" \
-          -var="subnet=$SUBNET" \
-          -var="aws_vpc_zone_identifier=$SUBNET_LIST"
-        terraform apply -lock=false -auto-approve plan.tfplan
+#         for i in $(seq 1 $MAX_RETRIES); do
+#           STATE=$(aws ec2 describe-images --image-ids "$AMI_ID" --query "Images[0].State" --output text)
+#           echo "AMI state: $STATE"
 
-      env:
-        AMD_ID: ${{ needs.create-role-image.outputs.web_ami_id }}
-        INSTANCE_TYPE: "t2.micro"
-        KEY_NAME: ${{ secrets.AWS_KEYNAME }}
-        SECURITY_GROUP: ${{ secrets.AWS_SECURITYGROUP }}
-        IAM_INSTANCE: ${{ secrets.AWS_PIPELINE_ROLE }}
-        AWS_REGION: ${{ vars.AWS_REGION }}
-        VPC: ${{ secrets.AWS_VPC }}
-        SUBNET: ${{ secrets.AWS_SUBNET }}
-        AWS_VPC_ZONE_IDENTIFIER: ${{ secrets.AWS_VPC_ZONE_IDENTIFIER }}
+#           if [ "$STATE" = "available" ]; then
+#             exit 0
+#           elif [ "$STATE" = "failed" ]; then
+#             exit 1
+#           else
+#             sleep $SLEEP_SECONDS
+#           fi
+#         done
 
-    - name: Refresh ASG Instances
-      run: |
-        aws autoscaling start-instance-refresh \
-          --auto-scaling-group-name asg-web-demo \
-          --strategy Rolling
+#         exit 1
+
+#     - name: Setup web ASG and ALB
+#       run: |
+#         SUBNET_LIST=$(echo $AWS_VPC_ZONE_IDENTIFIER | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
+#         SG_LIST=$(echo $SECURITY_GROUP | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
+#         terraform init
+#         terraform plan -lock=false -out=plan.tfplan \
+#           -var="ami_id=${{ needs.create-role-image.outputs.web_ami_id }}" \
+#           -var="instance_type=$INSTANCE_TYPE" \
+#           -var="key_name=$KEY_NAME" \
+#           -var="security_group=$SG_LIST" \
+#           -var="aws_region=$AWS_REGION" \
+#           -var="vpc=$VPC" \
+#           -var="subnet=$SUBNET" \
+#           -var="aws_vpc_zone_identifier=$SUBNET_LIST"
+#         terraform apply -lock=false -auto-approve plan.tfplan
+
+#       env:
+#         AMD_ID: ${{ needs.create-role-image.outputs.web_ami_id }}
+#         INSTANCE_TYPE: "t2.micro"
+#         KEY_NAME: ${{ secrets.AWS_KEYNAME }}
+#         SECURITY_GROUP: ${{ secrets.AWS_SECURITYGROUP }}
+#         IAM_INSTANCE: ${{ secrets.AWS_PIPELINE_ROLE }}
+#         AWS_REGION: ${{ vars.AWS_REGION }}
+#         VPC: ${{ secrets.AWS_VPC }}
+#         SUBNET: ${{ secrets.AWS_SUBNET }}
+#         AWS_VPC_ZONE_IDENTIFIER: ${{ secrets.AWS_VPC_ZONE_IDENTIFIER }}
+
+#     - name: Refresh ASG Instances
+#       run: |
+#         aws autoscaling start-instance-refresh \
+#           --auto-scaling-group-name asg-web-demo \
+#           --strategy Rolling

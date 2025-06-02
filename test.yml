@@ -1,0 +1,39 @@
+- hosts: localhost
+  become: true
+  tasks:
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Ensure Nginx is running and enabled
+      service:
+        name: nginx
+        state: started
+        enabled: true
+
+    - name: Create test index.html
+      copy:
+        content: "<html><body><h1>Hello from Ansible</h1></body></html>"
+        dest: /var/www/html/index.html
+        owner: www-data
+        group: www-data
+        mode: '0644'
+
+    - name: Wait until localhost is serving content
+      uri:
+        url: http://localhost
+        status_code: 200
+        return_content: yes
+      register: web_response
+      retries: 5
+      delay: 3
+      until: web_response.status == 200
+
+    - name: Confirm test content is visible
+      assert:
+        that:
+          - "'Hello from Ansible' in web_response.content"
+        fail_msg: "Nginx page did not serve expected content"
+        success_msg: "Nginx is up and serving the test page"
