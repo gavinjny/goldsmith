@@ -212,6 +212,14 @@ jobs:
         RUN_NUM=${GITHUB_RUN_NUMBER}
         echo "run_num=$RUN_NUM" >> $GITHUB_OUTPUT
 
+    - name: Read log file for email
+      id: read_log
+      run: |
+        LOG_CONTENT=$(cat ansible-run.log)
+        echo "log_content<<EOF" >> $GITHUB_OUTPUT
+        echo "$LOG_CONTENT" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
     - name: Email test results
       uses: dawidd6/action-send-mail@v3
       with:
@@ -380,3 +388,10 @@ jobs:
         aws autoscaling start-instance-refresh \
           --auto-scaling-group-name asg-web-demo-v1 \
           --strategy Rolling
+
+    - name: Refresh ASG Instances
+      run: |
+        aws autoscaling start-instance-refresh \
+          --auto-scaling-group-name asg-web-demo-v2 \
+          --strategy Rolling
+

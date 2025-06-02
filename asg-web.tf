@@ -43,8 +43,8 @@ resource "aws_lb_target_group" "v2" {
 # Auto Scaling Group - Stable (v1)
 resource "aws_autoscaling_group" "asg_v1" {
   name                = "asg-web-demo-v1"
-  desired_capacity    = 2
-  max_size            = 3
+  desired_capacity    = 1
+  max_size            = 2
   min_size            = 1
   vpc_zone_identifier = var.aws_vpc_zone_identifier
 
