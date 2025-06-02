@@ -136,7 +136,7 @@ jobs:
     outputs:
       web_ec2_id: ${{ steps.web_ec2_launch.outputs.web_ec2_id }}
       web_public_ip: ${{ steps.web_get_ip.outputs.web_public_ip }}
-      # web_ami_id: ${{ steps.web_create_ami.outputs.web_ami_id }}
+      web_ami_id: ${{ steps.web_create_ami.outputs.web_ami_id }}
 
     steps:
     - name: Checkout
