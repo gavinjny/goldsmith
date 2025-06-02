@@ -59,7 +59,7 @@ Create or update Ubuntu base image - Packer
         1. Yes - Tag the image with name of v[Date].[Base image build ID].[Role image build ID]
         1. No – Delete image
 
-### 3. Deploy role image
+### 3. Deploy role image upon approval
 **Terraform**
 1. Rolling deployment of the latest role image - ALB
 1. Create autoscaling group - ASG
