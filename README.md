@@ -3,26 +3,25 @@ This project is a demonstration Github pipeline(Goldsmith) to create, update and
 
 **Features**
 1.	Updates golden image and EC2s on AWS
-2.	Creates new or use existing golden image
-2.  Deploys Ubuntu EC2 using rolling deployment
-3.  Uses auto scaling
-3.	Automated testing of images
-4.	Automated end to end
-5.	Application management
-6.	Monitoring with CloudWatch
-7.	Test result notification via email
+1.	Creates new or use existing golden image
+1.  Deploys Ubuntu EC2 using rolling deployment
+1.  Uses auto scaling
+1.	Automated testing of images
+1.	Automated end to end
+1.	Application management
+1.	Monitoring with CloudWatch
+1.	Test result notification via email
 
 **Skills Demonstrated**
-1.	Bash
 1.	Ansible
 1.	Terraform 
 1.	Packer
 1.	Linux 
+1.	Bash
 1.	Debugging
 1.	SSH certification usage
 1. Git Actions pipeline
 1. AWS (EC2, AMI, ASG, ALB, IAM, Cloudwatch)
-1. MySQL
 1. Yaml
 1. HCL
 1. Linux

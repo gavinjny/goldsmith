@@ -1,0 +1,63 @@
+
+---
+- name: Check KBs based on SharePoint version
+  hosts: windows
+  gather_facts: yes
+
+  vars:
+    kb_list_2019:
+      - KB5002498
+      - KB5002500
+    kb_list_2016:
+      - KB4011028
+      - KB4011030
+
+  tasks:
+
+    - name: Get installed programs (including SharePoint)
+      win_shell: |
+        Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*" |
+        Where-Object { $_.DisplayName -like "*SharePoint*" } |
+        Select-Object -ExpandProperty DisplayName
+      register: sp_products
+
+    - name: Set fact for SharePoint version
+      set_fact:
+        sp_version: >-
+          {% if sp_products.stdout_lines | select('search', '2019') | list | length > 0 %}
+            2019
+          {% elif sp_products.stdout_lines | select('search', '2016') | list | length > 0 %}
+            2016
+          {% else %}
+            unknown
+          {% endif %}
+
+    - name: Show detected SharePoint version
+      debug:
+        msg: "Detected SharePoint version: {{ sp_version }}"
+
+    - name: Set KB list based on SharePoint version
+      set_fact:
+        kb_list: "{{ kb_list_2019 if sp_version == '2019' else kb_list_2016 if sp_version == '2016' else [] }}"
+
+    - name: Check if KBs are installed
+      win_hotfix:
+        hotfix_id: "{{ item }}"
+      loop: "{{ kb_list }}"
+      when: kb_list | length > 0
+      register: kb_check_results
+
+    - name: Identify missing KBs
+      set_fact:
+        missing_kbs: "{{ kb_check_results.results | rejectattr('found', 'equalto', true) | map(attribute='item') | list }}"
+      when: kb_check_results is defined
+
+    - name: Fail if any KBs are missing
+      fail:
+        msg: "The following KBs are missing: {{ missing_kbs }}"
+      when: missing_kbs | length > 0
+
+    - name: Confirm all required KBs are installed
+      debug:
+        msg: "All required KBs for SharePoint {{ sp_version }} are installed."
+      when: kb_list | length > 0 and (missing_kbs | length == 0)
