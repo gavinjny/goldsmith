@@ -1,25 +1,25 @@
 # About
-This project is a demonstration Github pipeline(Goldsmith) to create, update and deploy golden images. The infrastructure hosts http://www.gavinjny.com, which only displays a copy of my resume. The pipeline modifies AWS AMI, EC2, ASG, ALB. 
+This project is a demonstration Github pipeline(Goldsmith) to create, update and deploy golden images. The infrastructure hosts my web site http://www.gavinjny.com, which only displays a copy of my resume. The pipeline modifies AWS AMI, EC2, ASG, ALB. **The website is only available for viewing during the demo sessions.**
 
 **Features**
-1.	Updates golden image and EC2s on AWS
 1.	Creates new or use existing golden image
+1.	Deploys golden image to EC2s on AWS
 1.  Deploys Ubuntu EC2 using rolling deployment
 1.  Uses auto scaling
 1.	Automated testing of images
+1.  Load balancer configuration
 1.	Automated end to end
-1.	Application management
-1.	Monitoring with CloudWatch
-1.	Test result notification via email
+1.	Test results sent via email
 
 **Skills Demonstrated**
-1.	Ansible
-1.	Terraform 
-1.	Packer
-1.	Linux 
-1.	Bash
-1.	Debugging
-1.	SSH certification usage
+1. Ansible
+1. Terraform 
+1. Packer
+1. Linux 
+1. Bash
+1. Integrating AI generated code
+1. Debugging
+1. SSH certification usage
 1. Git Actions pipeline
 1. AWS (EC2, AMI, ASG, ALB, IAM, Cloudwatch)
 1. Yaml
@@ -43,7 +43,7 @@ Follow these steps to run the pipeline(Goldsmith). This repo's pipeline is only 
 Create or update Ubuntu base image - Packer
 1. Change timezone
 1. Update software
-1. Was the build success?
+1. Was the build successful?
     1. Yes - Tag the image with v[Date].[Base image build ID]
     1. No – Delete image
 ### 2. Create role image
@@ -54,7 +54,7 @@ Create or update Ubuntu base image - Packer
         1. Timezone change to New York
         1. Services running with Ansible
         1. Localhost requests are working
-    1. Was the build success?
+    1. Was the build successful?
         1. Yes - Tag the image with name of v[Date].[Base image build ID].[Role image build ID]
         1. No – Delete image
 
@@ -65,7 +65,7 @@ Create or update Ubuntu base image - Packer
 
 
 ## Todo
-1. Use Inpec for testing
+1. Use Inspec for testing
 1. Setup incident tracking using Cloudwatch and Trello
 1. Show golden signals with Cloudwatch
 1. Create dashboard
