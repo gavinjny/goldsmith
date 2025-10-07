@@ -10,6 +10,7 @@ This project is a demonstration Github pipeline(Goldsmith) to create, update and
 1.  Load balancer configuration
 1.	Automated end to end
 1.	Test results sent via email
+1.  Approval needed before deployment to production
 
 **Skills Demonstrated**
 1. Ansible
