@@ -18,7 +18,7 @@ module "eks" {
     }
   }
 
-  # 👇 Avoid the aws_iam_session_context (no iam:GetRole needed)
+  # Avoid the aws_iam_session_context (no iam:GetRole needed)
   enable_cluster_creator_admin_permissions = false
 
   # Explicitly grant your pipeline role cluster-admin
