@@ -21,12 +21,10 @@ module "eks" {
   }
 
   enable_cluster_creator_admin_permissions = false
-
-
-  # manage_aws_auth = true
+  manage_aws_auth = true
   access_entries = {
     gha = {
-      principal_arn       = var.pipeline_role_arn   # you pass this in
+      principal_arn       = var.pipeline_role_arn   # same ARN as role-to-assume
       kubernetes_username = "github-actions"
       kubernetes_groups   = ["system:masters"]
     }
