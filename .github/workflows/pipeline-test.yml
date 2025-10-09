@@ -54,7 +54,7 @@ jobs:
         EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
         AWS_PIPELINE_ROLE: ${{ secrets.AWS_PIPELINE_ROLE }}
         AWS_REGION: ${{ vars.AWS_REGION }}
-        INSTANCE_TYPE: "t2.micro"
+        INSTANCE_TYPE: "t3.small"
         KEY_NAME: ${{ secrets.AWS_KEYNAME }}
         SECURITY_GROUP: ${{ secrets.AWS_SECURITYGROUP }}
         VPC: ${{ secrets.AWS_VPC }}
