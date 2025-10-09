@@ -35,6 +35,7 @@ jobs:
 
     - name: Terraform Init and Apply
       run: |
+        SUBNET_LIST=$(echo $AWS_VPC_ZONE_IDENTIFIER | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
         SG_LIST=$(echo $SECURITY_GROUP | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
         terraform -chdir=eks-monitoring init
         terraform -chdir=eks-monitoring plan -lock=false -out=plan.tfplan \
