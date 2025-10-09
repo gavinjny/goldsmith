@@ -12,7 +12,7 @@ on:
         type: choice
         options: [create, delete]
         default: create
- 
+
 jobs:
   eksctl:
     name: Setup eks-monitoring Grafana/Prometheus
