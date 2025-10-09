@@ -1,6 +1,6 @@
-
 data "aws_eks_cluster_auth" "this" {
-  name = module.eks.cluster_name
+  provider = aws.k8s
+  name     = module.eks.cluster_name
 }
 
 provider "kubernetes" {
@@ -9,6 +9,7 @@ provider "kubernetes" {
   token                  = data.aws_eks_cluster_auth.this.token
 }
 
+# Use attribute style for broad provider compatibility
 provider "helm" {
   kubernetes = {
     host                   = module.eks.cluster_endpoint
