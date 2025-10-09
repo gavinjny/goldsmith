@@ -12,3 +12,18 @@ variable "aws_region" {
 variable "instance_type" {
     type = string
 }
+variable "vpc" {
+    type = string
+}
+variable "subnet" {
+    type = string
+}
+variable "aws_vpc_zone_identifier" {
+    type = string
+}
+variable "key_name" {
+    type = string
+}
+variable "security_group" {
+    type = string
+}

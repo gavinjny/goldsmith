@@ -6,8 +6,8 @@ module "eks" {
   cluster_version                = local.k8s_version
   cluster_endpoint_public_access = true
 
-  vpc_id     = module.vpc.vpc_id
-  subnet_ids = module.vpc.private_subnets
+  vpc_id     = var.vpc
+  subnet_ids = var.subnet
 
   create_cloudwatch_log_group = false
 

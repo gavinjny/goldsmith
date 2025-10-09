@@ -35,20 +35,30 @@ jobs:
 
     - name: Terraform Init and Apply
       run: |
+        SG_LIST=$(echo $SECURITY_GROUP | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
         terraform -chdir=eks-monitoring init
         terraform -chdir=eks-monitoring plan -lock=false -out=plan.tfplan \
           -var="aws_region=$AWS_REGION" \
           -var="instance_type=$INSTANCE_TYPE" \
           -var="cluster_name=$EKS_CLUSTER_NAME" \
-          -var="pipeline_role_arn=$AWS_PIPELINE_ROLE" 
+          -var="pipeline_role_arn=$AWS_PIPELINE_ROLE" \
+          -var="key_name=$KEY_NAME" \
+          -var="security_group=$SG_LIST" \
+          -var="vpc=$VPC" \
+          -var="subnet=$SUBNET" \
+          -var="aws_vpc_zone_identifier=$SUBNET_LIST" \
+
         terraform -chdir=eks-monitoring apply -lock=false -auto-approve plan.tfplan
       env:
         EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
         AWS_PIPELINE_ROLE: ${{ secrets.AWS_PIPELINE_ROLE }}
         AWS_REGION: ${{ vars.AWS_REGION }}
         INSTANCE_TYPE: "t2.micro"
-
-
+        KEY_NAME: ${{ secrets.AWS_KEYNAME }}
+        SECURITY_GROUP: ${{ secrets.AWS_SECURITYGROUP }}
+        VPC: ${{ secrets.AWS_VPC }}
+        SUBNET: ${{ secrets.AWS_SUBNET }}
+        SUBNET_LIST: ${{ secrets.AWS_VPC_ZONE_IDENTIFIER }} 
 
     - name: Show Grafana Hostname
       run: |
