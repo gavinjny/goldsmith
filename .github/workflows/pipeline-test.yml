@@ -38,9 +38,9 @@ jobs:
         terraform -chdir=eks-monitoring init
         terraform -chdir=eks-monitoring plan -lock=false -out=plan.tfplan \
           -var="cluster_name=$EKS_CLUSTER_NAME"
-        terraform apply -lock=false -auto-approve plan.tfplan
+        # terraform apply -lock=false -auto-approve plan.tfplan
       env:
-        eks-monitoring_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
+        EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
 
 
 
