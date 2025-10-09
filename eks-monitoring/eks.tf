@@ -21,7 +21,7 @@ module "eks" {
   }
 
   enable_cluster_creator_admin_permissions = false
-  manage_aws_auth = true
+  # manage_aws_auth = true
   access_entries = {
     gha = {
       principal_arn       = var.pipeline_role_arn   # same ARN as role-to-assume
