@@ -18,11 +18,10 @@ module "eks" {
     }
   }
 
-  # 🔴 Disable implicit cluster-creator admin (avoids iam:GetRole)
   enable_cluster_creator_admin_permissions = false
 
-  # ✅ Explicitly grant your pipeline role admin
-  manage_aws_auth = true
+
+  # manage_aws_auth = true
   access_entries = {
     gha = {
       principal_arn       = var.pipeline_role_arn   # you pass this in
