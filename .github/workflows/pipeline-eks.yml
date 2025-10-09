@@ -8,11 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       action:
-<<<<<<< HEAD
         description: Create or delete the demo cluster?
-=======
-        description: create or delete the cluster
->>>>>>> ecdb3a7e792761128d5862a9ecc8587c088abd87
         type: choice
         options: [create, delete]
         default: create

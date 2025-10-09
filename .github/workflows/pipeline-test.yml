@@ -1,9 +1,9 @@
 name: Test Pipeline
 
-# on:
-#   workflow_call:
-#   push:
-#     branches: [ "test" ]
+on:
+  workflow_call:
+  # push:
+  #   branches: [ "test" ]
 
 permissions:
   id-token: write
