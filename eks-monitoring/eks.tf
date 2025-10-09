@@ -7,7 +7,7 @@ module "eks" {
   cluster_endpoint_public_access = true
 
   vpc_id     = var.vpc
-  subnet_ids = var.subnet
+  subnet_ids = var.aws_vpc_zone_identifier
 
   create_cloudwatch_log_group = false
 
