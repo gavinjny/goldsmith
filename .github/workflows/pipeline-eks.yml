@@ -1,0 +1,76 @@
+name: Test Pipeline
+
+# on:
+  # workflow_call:
+  # push:
+  #   branches: [ "test" ]
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: create or delete the cluster
+        type: choice
+        options: [create, delete]
+        default: create
+
+jobs:
+  eksctl:
+    name: Setup eks-monitoring Grafana/Prometheus
+    runs-on: ubuntu-latest
+    environment: Prod
+    env:
+      # From your question (already available in the pipeline)
+      EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME }}
+      INSTANCE_TYPE: t3.small
+      KEY_NAME: ${{ secrets.AWS_KEYNAME }}
+      SECURITY_GROUP: ${{ secrets.AWS_SECURITYGROUP }}    # (optional; not used in this minimal flow)
+      IAM_INSTANCE: ${{ secrets.AWS_PIPELINE_ROLE }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      VPC: ${{ secrets.AWS_VPC }}                         # (optional; not needed if SUBNETs provided)
+      SUBNET: ${{ secrets.AWS_SUBNET }}                   # e.g., "subnet-aaa,subnet-bbb"
+      AWS_VPC_ZONE_IDENTIFIER: ${{ secrets.AWS_VPC_ZONE_IDENTIFIER }} # (optional; not used here)
+      ACM_CERTIFICATE_ARN: ${{ secrets.ACM_CERTIFICATE_ARN }}         # (optional; not used here)
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS (assume role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.IAM_INSTANCE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install eksctl
+        run: |
+          curl -sSL "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" \
+            | tar xz
+          sudo mv eksctl /usr/local/bin/
+          eksctl version
+
+      # ---- CREATE ----
+      - name: Create EKS cluster (managed nodegroup)
+        if: ${{ inputs.action == 'create' }}
+        run: |
+          eksctl create cluster \
+            --name "$EKS_CLUSTER_NAME" \
+            --region "$AWS_REGION" \
+            --version "1.29" \
+            --managed \
+            --nodes 2 \
+            --node-type "$INSTANCE_TYPE" \
+            --with-oidc \
+            --node-private-networking \
+            --vpc-private-subnets "$SUBNET" \
+            --ssh-access --ssh-public-key "$KEY_NAME"
+
+          # (optional) write kubeconfig for later steps / debugging
+          aws eks update-kubeconfig --name "$EKS_CLUSTER_NAME" --region "$AWS_REGION"
+
+      # ---- DELETE ----
+      - name: Delete EKS cluster
+        if: ${{ inputs.action == 'delete' }}
+        run: |
+          eksctl delete cluster \
+            --name "$EKS_CLUSTER_NAME" \
+            --region "$AWS_REGION" \
+            --disable-nodegroup-eviction

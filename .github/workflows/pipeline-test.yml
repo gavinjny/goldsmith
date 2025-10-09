@@ -1,9 +1,9 @@
 name: Test Pipeline
 
-on:
-  workflow_call:
-  # push:
-  #   branches: [ "test" ]
+# on:
+#   workflow_call:
+#   push:
+#     branches: [ "test" ]
 
 permissions:
   id-token: write
@@ -13,8 +13,8 @@ permissions:
 #   VERSION: "8.2.1" # 1.7.8.11/8.2.1 
 
 jobs:
-  create-role-image:
-    name: Create and customize role images
+  create-eks-monitoring-cluster:
+    name: Setup eks-monitoring Grafana/Prometheus
     runs-on: ubuntu-latest
     environment: Prod
 
@@ -22,20 +22,46 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Install Ansible
-      run: |
-        sudo apt update
-        sudo apt install -y ansible
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ secrets.AWS_PIPELINE_ROLE }}
+        aws-region: ${{ vars.AWS_REGION }}
 
-    - name: Run DB customization
+    - name: Install Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: latest
+
+    - name: Terraform Init and Apply
       run: |
-        ansible-playbook -i "localhost," test.yml \
-        -u ubuntu --private-key ec2-key.pem \
-        --extra-vars "version=$VERSION" \
-        --extra-vars "MYSQL_STOREFRONT_USER=$MYSQL_STOREFRONT_USER" \
-        --extra-vars "MYSQL_STOREFRONT_PASSWORD=$MYSQL_STOREFRONT_PASSWORD" \
-        --extra-vars "MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD"
+        SUBNET_LIST=$(echo $AWS_VPC_ZONE_IDENTIFIER | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
+        SG_LIST=$(echo $SECURITY_GROUP | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
+        terraform -chdir=eks-monitoring init
+        terraform -chdir=eks-monitoring plan -lock=false -out=plan.tfplan \
+          -var="aws_region=$AWS_REGION" \
+          -var="instance_type=$INSTANCE_TYPE" \
+          -var="cluster_name=$EKS_CLUSTER_NAME" \
+          -var="pipeline_role_arn=$AWS_PIPELINE_ROLE" \
+          -var="key_name=$KEY_NAME" \
+          -var="security_group=$SG_LIST" \
+          -var="vpc=$VPC" \
+          -var="subnet=$SUBNET" \
+          -var="aws_vpc_zone_identifier=$SUBNET_LIST" \
+
+        terraform -chdir=eks-monitoring apply -lock=false -auto-approve plan.tfplan
       env:
-        MYSQL_STOREFRONT_USER: ${{ secrets.MYSQL_STOREFRONT_USER }}
-        MYSQL_STOREFRONT_PASSWORD: ${{ secrets.MYSQL_STOREFRONT_PASSWORD }}
-        MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+        EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
+        AWS_PIPELINE_ROLE: ${{ secrets.AWS_PIPELINE_ROLE }}
+        AWS_REGION: ${{ vars.AWS_REGION }}
+        INSTANCE_TYPE: "t3.small"
+        KEY_NAME: ${{ secrets.AWS_KEYNAME }}
+        SECURITY_GROUP: ${{ secrets.AWS_SECURITYGROUP }}
+        VPC: ${{ secrets.AWS_VPC }}
+        SUBNET: ${{ secrets.AWS_SUBNET }}
+        SUBNET_LIST: ${{ secrets.AWS_VPC_ZONE_IDENTIFIER }} 
+
+    - name: Show Grafana Hostname
+      run: |
+        terraform -chdir=eks-monitoring output -raw grafana_service_hostname || true
+
