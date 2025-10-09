@@ -39,7 +39,7 @@ jobs:
         terraform -chdir=eks-monitoring plan -lock=false -out=plan.tfplan \
           -var="cluster_name=$EKS_CLUSTER_NAME" \
           -var="pipeline_role_arn=$AWS_PIPELINE_ROLE" 
-        # terraform apply -lock=false -auto-approve plan.tfplan
+        terraform apply -lock=false -auto-approve plan.tfplan
       env:
         EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
         AWS_PIPELINE_ROLE: ${{ secrets.AWS_PIPELINE_ROLE }}
