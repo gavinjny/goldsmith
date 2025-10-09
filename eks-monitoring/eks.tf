@@ -11,21 +11,21 @@ module "eks" {
 
   eks_managed_node_groups = {
     default = {
-      instance_types = ["t3.medium"] # t2.micro is very tight for Prom/Grafana
+      instance_types = ["t3.medium"]
       desired_size   = 2
       min_size       = 1
       max_size       = 3
     }
   }
 
-  # Avoid the aws_iam_session_context (no iam:GetRole needed)
+  # 🔴 Disable implicit cluster-creator admin (avoids iam:GetRole)
   enable_cluster_creator_admin_permissions = false
 
-  # Explicitly grant your pipeline role cluster-admin
-  #  manage_aws_auth = true
+  # ✅ Explicitly grant your pipeline role admin
+  manage_aws_auth = true
   access_entries = {
     gha = {
-      principal_arn       = var.pipeline_role_arn
+      principal_arn       = var.pipeline_role_arn   # you pass this in
       kubernetes_username = "github-actions"
       kubernetes_groups   = ["system:masters"]
     }
