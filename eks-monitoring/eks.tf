@@ -21,10 +21,11 @@ module "eks" {
   }
 
   # Map the caller (your pipeline IAM identity) so Helm/K8s providers can deploy
-  manage_aws_auth = true
-  aws_auth_users = [{
-    userarn  = data.aws_caller_identity.current.arn
-    username = "github-actions"
-    groups   = ["system:masters"]
-  }]
+  access_entries = [
+    {
+      kubernetes_username = "github-actions"
+      kubernetes_groups   = ["system:masters"]
+      principal_arn       = data.aws_caller_identity.current.arn
+    }
+  ]
 }
